@@ -12,7 +12,7 @@ app = Flask(__name__)
 CORS(app, supports_credentials=True)
 
 global cfg
-cfg = Path('server/server_config.yaml').read_text().rsplit()
+cfg = Path('cfg/server.yaml').read_text().rsplit()
 
 @app.route('/api', methods=['POST'])
 def api():
@@ -36,6 +36,7 @@ def generate():
 def video_feed():
     return Response(generate(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
+
 
 if __name__ == '__main__':
     app.run(host=cfg.ip, port=cfg.port, debug=False)

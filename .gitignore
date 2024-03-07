@@ -1,0 +1,24 @@
+# python
+__pycache__
+*.py[cod]
+.venv
+.vscode
+
+# build
+/build
+/dist
+*.exe
+*.spec
+
+# source
+/weight
+# ! /weights/yolov5s.pt
+/datasets
+/dependence
+/steammedia/assets
+! /steammedia/assets/视频编号.txt
+*.mp4
+*.zip
+*.xlsx
+*.jpg
+*.avi

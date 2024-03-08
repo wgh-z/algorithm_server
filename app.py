@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 # server的主程序，用于启动flask服务
-from pathlib import Path
+import yaml
+# from pathlib import Path
 from flask import Flask, Response, request, jsonify
 from flask_cors import CORS
 import cv2
@@ -11,8 +12,44 @@ import cv2
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
 
-global cfg
-cfg = Path('cfg/server.yaml').read_text().rsplit()
+with open('cfg/frontend.yaml', 'r', encoding='utf-8') as f:
+    cfg = yaml.load(f, Loader=yaml.FullLoader)
+
+# 单击左键
+@app.route('/left')  # 参数要与html相同
+def leftpointer():
+    global l_rate
+    x = float(request.args["xrate"])  # 接收客户端传来的参数
+    y = float(request.args["yrate"])
+    l_rate = (x, y)
+    print('left==', l_rate)
+    return "success"
+
+# 双击左键
+@app.route('/double')  # 参数要与html相同
+def doubleleftpointer():
+    global r_rate
+    x = float(request.args["xrate"])  # 接收客户端传来的参数
+    y = float(request.args["yrate"])
+    r_rate = (x, y)
+    print('right==', r_rate)
+    return "success"
+
+@app.route('/click', methods=['POST'])
+def click():
+    global l_rate
+    x = float(request.json['x'])
+    y = float(request.json['y'])
+    l_rate = (x, y)
+    return jsonify({'code':0})
+
+@app.route('/dblclick', methods=['POST'])
+def dbclick():
+    global r_rate
+    x = float(request.json['x'])
+    y = float(request.json['y'])
+    r_rate = (x, y)
+    return jsonify({'code':0})
 
 @app.route('/api', methods=['POST'])
 def api():

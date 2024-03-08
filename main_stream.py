@@ -1,11 +1,12 @@
 # 远程鼠标点击显示追踪目标
 # import pyautogui
 # import io
+import yaml
 import requests
 import cv2 as cv
 import numpy as np
 # from PIL import Image
-# import argparse
+from pathlib import Path
 from flask import Flask, render_template, Response, request, jsonify
 from flask_cors import CORS
 from models.track import Track
@@ -15,6 +16,9 @@ from ultralytics import YOLO
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
+
+with open('cfg/frontend.yaml', 'r', encoding='utf-8') as f:
+    cfg = yaml.load(f, Loader=yaml.FullLoader)
 
 # 获取屏幕尺寸
 # screenWidth, screenHeight = pyautogui.size()
@@ -26,7 +30,6 @@ show_id = dict()
 def index():
     return render_template('index.html')
 
-
 # 单击左键
 @app.route('/left')  # 参数要与html相同
 def leftpointer():
@@ -36,7 +39,6 @@ def leftpointer():
     l_rate = (x, y)
     print('left==', l_rate)
     return "success"
-
 
 # # 单击右键
 # @app.route('/right')
@@ -48,7 +50,6 @@ def leftpointer():
 #     print('right==', r_rate)
 #     return "success"
 
-
 # 双击左键
 @app.route('/double')  # 参数要与html相同
 def doubleleftpointer():
@@ -58,7 +59,6 @@ def doubleleftpointer():
     r_rate = (x, y)
     print('right==', r_rate)
     return "success"
-
 
 # # 按下
 # @app.route('/down')
@@ -71,7 +71,6 @@ def doubleleftpointer():
 #     print('left==', x, y)
 #     return "success"
 
-
 # # 拖动
 # @app.route('/move')
 # def move():
@@ -80,7 +79,6 @@ def doubleleftpointer():
 #     # pyautogui.moveTo(x, y)  # 拖动响应
 #     print('move==', x, y)
 #     return "success"
-
 
 # # 释放
 # @app.route('/up')
@@ -100,7 +98,6 @@ def click():
     l_rate = (x, y)
     return jsonify({'code':0})
 
-
 @app.route('/dblclick', methods=['POST'])
 def dbclick():
     global r_rate
@@ -108,7 +105,6 @@ def dbclick():
     y = float(request.json['y'])
     r_rate = (x, y)
     return jsonify({'code':0})
-
 
 def gen():
     global l_rate, r_rate, show_id, results, vid_stride
@@ -143,35 +139,19 @@ def gen():
         yield (b'--frame\r\n'
                         b'Content-Type: image/jpeg\r\n\r\n' + out_frame + b'\r\n')
 
-
 @app.route('/video_feed')
 def video_feed():
     return Response(gen(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("--ip", type=str, default='0.0.0.0', help="ip address")
-    # parser.add_argument("--port", type=int, default=3002, help="port number")
-    # parser.add_argument("--weight", type=str, default='yolov5m.pt', help="yolov5 weight")
-    # args = parser.parse_args()
-
-    # print(f'http://{args.ip}:{args.port}')
-    # app.run(host=args.ip, port=args.port, debug=True, threaded=True)
-
-
-    with open("配置文件.txt", "r") as f:
-        ip = f.readline().rstrip()
-        port = int(f.readline().rstrip())
-        weight = f.readline().rstrip()
-        # stream = f.readline()
-        # vid_stride = int(f.readline().rstrip())
-
-    stream = 'rtsp://admin:123456@192.168.31.211:554/stream1'
+    stream = r'E:\Projects\test_data\video\MOT17-test\MOT17-01.mp4'
     vid_stride = 3
+    weight = r'E:\Projects\weight\yolo\v8\detect\coco\yolov8m.pt'
 
-    assert ip, "请输入ip地址"
-    assert port, "请输入端口号"
+
+    assert cfg.ip, "请输入ip地址"
+    assert cfg.port, "请输入端口号"
     assert weight, "请输入权重文件"
     assert stream, "请输入视频流地址"
 
@@ -180,7 +160,6 @@ if __name__ == '__main__':
 
     model_end = weight.split('_')[-1]
     imgsz = [int(size) for size in model_end.split('x')] if 'x' in model_end else [640, 640]
-    weight = f'./weights/{weight}'
 
     model = YOLO(weight, task='detect')
 
@@ -193,4 +172,4 @@ if __name__ == '__main__':
         verbose=False
         )  # 生成器
 
-    app.run(host=ip, port=port, debug=False)
+    app.run(host=cfg.ip, port=cfg.port, debug=False)

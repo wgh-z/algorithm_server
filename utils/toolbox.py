@@ -41,31 +41,70 @@ class Timer:
 class Interpolator:
     '''
     这是一个插值器类，用于对检测结果进行插值
+    参数：
+        vid_stride: int, 视频检测间隔
+        mode: str, 插值模式： copy, linear, quadratic, cubic
     '''
-    def __init__(self, vid_stride):
+    def __init__(self, vid_stride:int=2, mode:str='copy'):
         self.vid_stride = vid_stride
         self.stride_counter = vid_stride
+        self.mode = mode
         self.prior_det = None
 
     def __call__(self, current_det):
+        if self.vid_stride == 1:  # vid_stride为1时，不进行插值
+            return current_det
+        if self.mode == 'copy':
+            return self.copy(current_det)
+    
+    def copy(self, current_det):
+        '''
+        超快速插值模式，即不插值，直接返回上一帧检测结果
+        '''
         if self.stride_counter == self.vid_stride:
-            # self.prior_det = current_det[:, :4]
-            self.prior_det = current_det
-            self.stride_counter = 0
+                # self.prior_det = current_det[:, :4]
+                self.prior_det = current_det
+                self.stride_counter = 0
         else:
             self.stride_counter += 1
             # current_det[:, :4] = interpolate_bbox(self.prior_det, current_det[:, :4], self.stride_counter)
             current_det = self.prior_det
         return current_det
+    
+    def balanced(self, current_det):
+        '''
+        平衡插值模式，即每隔vid_stride帧进行一次插值
+        '''
+        if self.stride_counter == self.vid_stride:
+            if self.prior_det is not None:
+                current_det = interpolate_bbox(self.prior_det, current_det, self.stride_counter)
+            self.prior_det = current_det
+            self.stride_counter = 0
+        else:
+            self.stride_counter += 1
+        return current_det
+    
+    def slow(self, current_det):
+        '''
+        慢速插值模式，即每帧都进行插值
+        '''
+        if self.prior_det is not None:
+            current_det = interpolate_bbox(self.prior_det, current_det, self.stride_counter)
+        self.prior_det = current_det
+        return current_det
 
 
 class ClickFilterDet:
     '''
-    这是一个点击过滤器类，用于使用点击过滤yolo检测结果
+    这是一个点击过滤器类，用于使用点击坐标过滤或回恢复yolo检测结果
     '''
     def __init__(self, frame):
         self.frame = frame
         self.click_point = None
+
+        # 30帧清空离场id
+        self.timer = Timer(30)
+
 
     def __call__(self, det, l_point=None, r_point=None):
         for i, *xyxy in enumerate(reversed(det[:, :4])):

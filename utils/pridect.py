@@ -10,10 +10,25 @@ from queue import Queue
 
 
 class Pridect:
-    def __init__(self, weight, source, imgsz) -> None:
+    def __init__(
+            self,
+            weight,
+            source,
+            imgsz,
+            group_scale: int = 4,
+            show_w: int = 1920,
+            show_h: int = 1080
+            ) -> None:
         self.weight = weight
         self.source = source
-        self.imgsz = imgsz    
+        self.imgsz = imgsz
+        self.group_scale = group_scale
+
+        self.scale = int(np.ceil(np.sqrt(group_scale)))
+        self.grid_w = int(show_w / self.scale)
+        self.grid_h = int(show_h / self.scale)
+
+        self.im_show = np.zeros((show_h, show_w, 3), dtype=np.uint8)
 
     def run(self):
         source_list = Path(self.source).read_text().rsplit()
@@ -33,11 +48,19 @@ class Pridect:
         cv2.destroyAllWindows()
     
     def collect_results(self):
-        results = []
+        group = []
+        result_groups = []
         for q in self.queue_list:
             if not q.empty():
-                results.append(q.get())
-        return results
+                group.append(q.get())
+
+            if len(group) == self.group_scale:
+                for i, im0 in enumerate(group):  # 拼接
+                    self.im_show[self.grid_h*(i//self.scale):self.grid_h*(1+(i//self.scale)),
+                            self.grid_w*(i%self.scale):self.grid_w*(1+(i%self.scale))] = im0
+                result_groups.append(self.im_show)
+                group = []
+        return result_groups
 
 
     # 需要抽象为类，每路加载不同的配置文件

@@ -6,6 +6,9 @@ from utils.regional_judgment import point_in_rect
 
 
 class Track:
+    '''
+    针对生成器结果的自定义追踪模型
+    '''
     def __init__(
             self,
             show_fps=False,
@@ -18,7 +21,7 @@ class Track:
         self.timer = Timer(30)
 
         # 跳帧计算
-        self.interpolator = Interpolator(vid_stride)
+        self.interpolator = Interpolator(vid_stride=vid_stride)
 
     def __call__(self, result, show_id:dict, l_rate=None, r_rate=None):
         # click point
@@ -70,3 +73,11 @@ class Track:
 
         annotated_frame = annotator.result()
         return annotated_frame, show_id
+
+
+if __name__ == '__main__':
+    # test
+    yolo = YOLO('yolov5s.pt')
+    tracker = Track()
+    for result in yolo.stream(r'F:\Projects\python\yolov8_stream\test_person30.mp4'):
+        pass

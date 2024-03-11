@@ -29,7 +29,7 @@
 
                 var x_rate = x / img_width;
                 var y_rate = y / img_height;
-                sendPosition('/click', x_rate, y_rate, 'POST')
+                sendPosition('/clickleft', x_rate, y_rate)
             }, 300);
         }
     }).dblclick(function(event) {
@@ -48,7 +48,7 @@
 
         var x_rate = x / img_width;
         var y_rate = y / img_height;
-        sendPosition('/dblclick', x_rate, y_rate, 'POST')
+        sendPosition('/clickdouble', x_rate, y_rate)
     });
 
     // 键盘监听事件
@@ -76,7 +76,7 @@
 
     function sendPosition(position, xrate, yrate, type='GET') {
         $.ajax({
-            url: position + "?x=" + xrate + "&=" + yrate,
+            url: position + "?xrate=" + xrate + "&yrate=" + yrate,
             type: type,
             success: function (data) {
                 console.log(data)

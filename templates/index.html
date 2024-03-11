@@ -1,0 +1,91 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="http://libs.baidu.com/jquery/2.0.0/jquery.js"></script>
+    <title>点击</title>
+</head>
+<body>
+<img id="myImage" src="{{ url_for('video_feed') }}">
+<style>
+    * { padding: 0; margin: 0 }
+    img { width: 100%; }
+</style>
+<script>
+    var clickTimer = null;
+    $(document).click(function(event) {
+        if (clickTimer === null) {
+            clickTimer = setTimeout(function() {
+                clickTimer = null;
+                // 这里是单击事件的处理代码
+                event = event || window.event;
+                var x = event.offsetX || event.originalEvent.layerX;
+                var y = event.offsetY || event.originalEvent.layerY;
+
+                var img = document.getElementById('myImage');
+                var img_width = img.width;
+                var img_height = img.height;
+
+                var x_rate = x / img_width;
+                var y_rate = y / img_height;
+                sendPosition('/click', x_rate, y_rate, 'POST')
+            }, 300);
+        }
+    }).dblclick(function(event) {
+        if (clickTimer !== null) {
+            clearTimeout(clickTimer);
+            clickTimer = null;
+        }
+        // 这里是双击事件的处理代码
+        event = event || window.event;
+        var x = event.offsetX || event.originalEvent.layerX;
+        var y = event.offsetY || event.originalEvent.layerY;
+
+        var img = document.getElementById('myImage');
+        var img_width = img.width;
+        var img_height = img.height;
+
+        var x_rate = x / img_width;
+        var y_rate = y / img_height;
+        sendPosition('/dblclick', x_rate, y_rate, 'POST')
+    });
+
+    // 键盘监听事件
+    document.onkeydown = function(e) {
+        e = e || window.event;
+        var key = e.which || e.keyCode;
+        if (key === 37) {
+            // 左
+            console.log('left');
+            sendPosition('/keyleft', 0, 0)
+        } else if (key === 38) {
+            // 上
+            console.log('up');
+            sendPosition('/keyup', 0, 0)
+        } else if (key === 39) {
+            // 右
+            console.log('right');
+            sendPosition('/keyright', 0, 0)
+        } else if (key === 40) {
+            // 下
+            console.log('down');
+            sendPosition('/keydown', 0, 0)
+        }
+    }
+
+    function sendPosition(position, xrate, yrate, type='GET') {
+        $.ajax({
+            url: position + "?x=" + xrate + "&=" + yrate,
+            type: type,
+            success: function (data) {
+                console.log(data)
+            },
+            error: function (error) {
+                alert(error)
+            }
+        })
+    }
+</script>
+</body>
+</html>

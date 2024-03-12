@@ -18,7 +18,8 @@ class Pridect:
             imgsz,
             group_scale: int = 4,  # 每组4路视频
             show_w: int = 1920,
-            show_h: int = 1080
+            show_h: int = 1080,
+            vid_stride: int = 1
             ) -> None:
         self.weight = weight
         self.source = source
@@ -26,6 +27,7 @@ class Pridect:
         self.group_scale = group_scale
         self.show_w = show_w
         self.show_h = show_h
+        self.vid_stride = vid_stride
 
         self.group_index = 0  # 当前显示的组索引
 
@@ -35,7 +37,7 @@ class Pridect:
 
         self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
 
-        self.break_flag = False  # 停止标志
+        self.run = True  # 运行标志
         self.first_run = True  # 第一次运行标志
 
     def start(self):
@@ -47,11 +49,11 @@ class Pridect:
             self.queue_list = []
             for i, source in enumerate(source_list):
                 q_in = Queue(30)
-                tracker_thread = threading.Thread(target=self.run_tracker_in_thread, args=(source, self.weight, i, q_in), daemon=True)
+                tracker_thread = threading.Thread(target=self.run_tracker_in_thread, args=(source, self.weight, i, q_in), daemon=False)
                 self.queue_list.append(q_in)
                 self.tracker_thread_list.append(tracker_thread)
                 tracker_thread.start()
-            
+
             show_thread = threading.Thread(target=self.collect_results, daemon=False)
             show_thread.start()
 
@@ -60,50 +62,40 @@ class Pridect:
 
         # Clean up and close windows
         # cv2.destroyAllWindows()
-    
+
     def stop(self):
-        self.break_flag = True
-        # for tracker_thread in self.tracker_thread_list:
-        #     tracker_thread.join()
+        self.run = False
+        for tracker_thread in self.tracker_thread_list:
+            tracker_thread.join()
+        for q in self.queue_list:
+            q.queue.clear()
+        print('模型已结束')
+        self.run = True
+        self.first_run = True
         # cv2.destroyAllWindows()
 
     def join(self):
         for tracker_thread in self.tracker_thread_list:
             tracker_thread.join()
-        
+
     def next_group(self):
         self.group_index = (self.group_index + 1) % self.group_scale
         return self.group_index
-    
+
     def prior_group(self):
         self.group_index = (self.group_index - 1) % self.group_scale
         return self.group_index
 
-    def show_results(self):
-        while True:
-            try:
-                t1 = time.time()
-                frame = self.collect_results()[self.group_index]
-                cv2.imshow('result', frame)
-                cv2.waitKey(1)
-                print('fps:', 1 / (time.time() - t1))
-            except:
-                pass
-
     def get_results(self):
         return self.im_show
-    
+
     def collect_results(self):
         # temp_grid = np.zeros((self.grid_h, self.grid_w, 3), dtype=np.uint8)
         # temp_im = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
-
         group = [None] * self.group_scale
         result_groups = [None] * self.group_num
         avg_fps = 0
-        while True:
-            print('collect_results', self.break_flag)
-            if self.break_flag:
-                break
+        while self.run:
             t1 = time.time()
             for i, q in enumerate(self.queue_list):
                 group[i%self.group_scale] = q.get()
@@ -113,7 +105,8 @@ class Pridect:
 
             self.im_show = result_groups[self.group_index]
             self.im_show = cv2.putText(self.im_show, f"FPS={avg_fps:.2f}", (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)  # 显示fps
-            avg_fps = (avg_fps + (1 / (time.time() - t1))) / 2
+            avg_fps = (avg_fps + (self.vid_stride / (time.time() - t1))) / 2
+        print('collect_results结束')
     
     def splice(self, im_list, scale):
         """
@@ -142,29 +135,30 @@ class Pridect:
             Press 'q' to quit the video display window.
         """
         model = YOLO(weight)
-        video = cv2.VideoCapture(filename)  # Read the video file
-        while True:
-            ret, frame = video.read()  # Read the video frames
-            if not ret:
-                break
-
-            results = model.track(
-                frame,
-                classes=[0,2],
-                tracker="bytetrack.yaml",  # 20fps
-                persist=True,
-                verbose=False
-                )
-            res_plotted = results[0].plot()
-            # cv2.imshow(f"Tracking_Stream_{file_index}", res_plotted)
-
-            # key = cv2.waitKey(1)
-            # if key == ord('q'):
-            #     break
-
-            q.put(res_plotted) if not q.full() else q.get()
+        cap = cv2.VideoCapture(filename)  # Read the video file
+        n = 0
+        while self.run:
+            # print(f'第{file_index}路:{self.run}')
+            # success, frame = cap.read()  # Read the video frames
+            n += 1
+            cap.grab()  # .read() = .grab() followed by .retrieve()
+            if n % self.vid_stride == 0:
+                success, im = cap.retrieve()
+                if not success:
+                    cap.open(filename)  # Read the video file
+                else:
+                    results = model.track(
+                        im,
+                        classes=[0,2],
+                        tracker="bytetrack.yaml",  # 20fps
+                        persist=True,
+                        verbose=False
+                        )
+                    res_plotted = results[0].plot()
+                    q.put(res_plotted) if not q.full() else q.get()
         # Release video sources
-        video.release()
+        cap.release()
+        print(f"第{file_index}路已停止")
 
 
 if __name__ == "__main__":

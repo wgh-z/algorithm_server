@@ -118,8 +118,9 @@ class Pridect:
 
             results = model.track(
                 frame,
-                persist=True,
                 classes=[0,2],
+                tracker="bytetrack.yaml",  # 20fps
+                persist=True,
                 verbose=False
                 )
             res_plotted = results[0].plot()
@@ -135,7 +136,7 @@ class Pridect:
 
 
 if __name__ == "__main__":
-    weight = r'E:\Projects\weight\yolo\v8\detect\coco\yolov8m.pt'
+    weight = r'E:\Projects\weight\yolo\v8\detect\coco\yolov8s.pt'
     stream = 'list.streams'
     imgsz = 640
     predicter = Pridect(weight, stream, imgsz)

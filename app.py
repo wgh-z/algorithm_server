@@ -36,13 +36,13 @@ def generate():
     while True:
         t1 = time.time()
         frame = predicter.collect_results()
-        d_fps = (d_fps + (1 / (time.time() - t1))) / 2
         frame = cv2.putText(frame, f"FPS={d_fps:.2f}", (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)  # 显示fps
         frame = cv2.resize(frame, (1280, 720))
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
         yield (b'--frame\r\n'
                 b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')  # concat frame one by one and show result
+        d_fps = (d_fps + (1 / (time.time() - t1))) / 2
 
 @app.route('/video_feed', methods=['GET'])
 def video_feed():

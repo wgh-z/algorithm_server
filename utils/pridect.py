@@ -16,7 +16,7 @@ class Pridect:
             weight,
             source,
             imgsz,
-            group_scale: int = 4,
+            group_scale: int = 4,  # 每组4路视频
             show_w: int = 1920,
             show_h: int = 1080
             ) -> None:
@@ -24,33 +24,47 @@ class Pridect:
         self.source = source
         self.imgsz = imgsz
         self.group_scale = group_scale
+        self.show_w = show_w
+        self.show_h = show_h
 
-        self.group_num = 0
+        self.group_index = 0  # 当前显示的组索引
 
-        self.scale = int(np.ceil(np.sqrt(group_scale)))
-        self.grid_w = int(show_w / self.scale)
-        self.grid_h = int(show_h / self.scale)
+        self.scale = int(np.ceil(np.sqrt(group_scale)))  # 横纵方向的视频数量
+        self.grid_w = int(self.show_w / self.scale)
+        self.grid_h = int(self.show_h / self.scale)
 
-        self.im_show = np.zeros((show_h, show_w, 3), dtype=np.uint8)
+        self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
 
-    def run(self):
-        source_list = Path(self.source).read_text().rsplit()
-        self.tracker_thread_list = []
-        self.queue_list = []
-        for i, source in enumerate(source_list):
-            q_in = Queue(30)
-            tracker_thread = threading.Thread(target=self.run_tracker_in_thread, args=(source, self.weight, i, q_in), daemon=False)
-            self.queue_list.append(q_in)
-            self.tracker_thread_list.append(tracker_thread)
-            tracker_thread.start()
-        
-        # show_thread = threading.Thread(target=self.show_results, daemon=False)
-        # show_thread.start()
+        self.break_flag = False  # 停止标志
+        self.first_run = True  # 第一次运行标志
+
+    def start(self):
+        if self.first_run == True:  # 第一次运行
+            self.first_run = False
+            source_list = Path(self.source).read_text().rsplit()
+            self.group_num = int(np.ceil(len(source_list)/self.group_scale))  # 组数
+            self.tracker_thread_list = []
+            self.queue_list = []
+            for i, source in enumerate(source_list):
+                q_in = Queue(30)
+                tracker_thread = threading.Thread(target=self.run_tracker_in_thread, args=(source, self.weight, i, q_in), daemon=True)
+                self.queue_list.append(q_in)
+                self.tracker_thread_list.append(tracker_thread)
+                tracker_thread.start()
+            
+            show_thread = threading.Thread(target=self.collect_results, daemon=False)
+            show_thread.start()
 
         # for tracker_thread in self.tracker_thread_list:
         #     tracker_thread.join()
 
         # Clean up and close windows
+        # cv2.destroyAllWindows()
+    
+    def stop(self):
+        self.break_flag = True
+        # for tracker_thread in self.tracker_thread_list:
+        #     tracker_thread.join()
         # cv2.destroyAllWindows()
 
     def join(self):
@@ -58,40 +72,58 @@ class Pridect:
             tracker_thread.join()
         
     def next_group(self):
-        self.group_num = (self.group_num + 1) % self.group_scale
-        return self.group_num
+        self.group_index = (self.group_index + 1) % self.group_scale
+        return self.group_index
     
     def prior_group(self):
-        self.group_num = (self.group_num - 1) % self.group_scale
-        return self.group_num
+        self.group_index = (self.group_index - 1) % self.group_scale
+        return self.group_index
 
     def show_results(self):
         while True:
             try:
                 t1 = time.time()
-                frame = self.collect_results()[self.group_num]
+                frame = self.collect_results()[self.group_index]
                 cv2.imshow('result', frame)
                 cv2.waitKey(1)
                 print('fps:', 1 / (time.time() - t1))
             except:
                 pass
+
+    def get_results(self):
+        return self.im_show
     
     def collect_results(self):
-        group = []
-        result_groups = []
-        for q in self.queue_list:
-            group.append(q.get())
+        # temp_grid = np.zeros((self.grid_h, self.grid_w, 3), dtype=np.uint8)
+        # temp_im = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
 
-            if len(group) == self.group_scale:
-                for i, im0 in enumerate(group):  # 拼接
-                    im0 = cv2.resize(im0, (self.grid_w, self.grid_h))
-                    self.im_show[self.grid_h*(i//self.scale):self.grid_h*(1+(i//self.scale)),
-                            self.grid_w*(i%self.scale):self.grid_w*(1+(i%self.scale))] = im0
-                show_img = self.im_show.copy()
-                result_groups.append(show_img)
-                group = []
-        return result_groups[self.group_num]
+        group = [None] * self.group_scale
+        result_groups = [None] * self.group_num
+        avg_fps = 0
+        while True:
+            print('collect_results', self.break_flag)
+            if self.break_flag:
+                break
+            t1 = time.time()
+            for i, q in enumerate(self.queue_list):
+                group[i%self.group_scale] = q.get()
 
+                if i%self.group_scale == self.group_scale-1:  # 一组视频收集完毕
+                    result_groups[i//self.group_scale] = self.splice(group, self.scale)  # 拼接图片
+
+            self.im_show = result_groups[self.group_index]
+            self.im_show = cv2.putText(self.im_show, f"FPS={avg_fps:.2f}", (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)  # 显示fps
+            avg_fps = (avg_fps + (1 / (time.time() - t1))) / 2
+    
+    def splice(self, im_list, scale):
+        """
+        拼接图片
+        """
+        im = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
+        for i, im0 in enumerate(im_list):
+            im0 = cv2.resize(im0, (self.grid_w, self.grid_h))
+            im[self.grid_h*(i//scale):self.grid_h*(1+(i//scale)), self.grid_w*(i%scale):self.grid_w*(1+(i%scale))] = im0
+        return im
 
     # 需要抽象为类，每路加载不同的配置文件
     def run_tracker_in_thread(self, filename, weight, file_index, q):
@@ -140,7 +172,7 @@ if __name__ == "__main__":
     stream = 'list.streams'
     imgsz = 640
     predicter = Pridect(weight, stream, imgsz)
-    predicter.run()
+    predicter.start()
     print('done!')
 
 

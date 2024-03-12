@@ -1,4 +1,4 @@
-# 模型预测相关
+# 自定义模型预测相关
 import cv2
 import time
 import threading

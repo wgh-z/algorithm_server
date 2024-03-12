@@ -71,10 +71,18 @@
             // 下
             console.log('down');
             sendPosition('/keydown', 0, 0)
+        } else if (key === 32) {
+            // space
+            console.log('space');
+            sendPosition('/keyspace', 0, 0)
+        } else if (key === 83) {
+            // s键
+            console.log('s');
+            sendPosition('/stop', 0, 0)
         }
     }
 
-    function sendPosition(position, xrate, yrate, type='GET') {
+    function sendPosition(position, xrate, yrate, type='POST') {
         $.ajax({
             url: position + "?xrate=" + xrate + "&yrate=" + yrate,
             type: type,

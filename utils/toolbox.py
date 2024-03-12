@@ -38,14 +38,15 @@ def interpolate_bbox(bbox1, bbox2, n=1):
     return bbox_n
 
 
-class Splice:
+class SquareSplice:
     """
-    这是一个拼接图片类，将一组图片按宫格拼接成一张大图
+    这是一个拼接图片类，将一组图片按平方宫格拼接成一张大图
     """
-    def __init__(self, scale, show_shape, grid_shape):
+    def __init__(self, scale: int = 2, show_shape: tuple = (1920, 1080)):
         self.scale = scale
         self.show_w, self.show_h = show_shape
-        self.grid_w, self.grid_h = grid_shape
+        self.grid_w = int(self.show_w / self.scale)
+        self.grid_h = int(self.show_h / self.scale)
 
     def __call__(self, im_list):
         im = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)

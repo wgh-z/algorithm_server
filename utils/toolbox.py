@@ -1,7 +1,30 @@
 # 工具箱
+import cv2
+import time
 import numpy as np
 from utils.regional_judgment import point_in_rect
 
+def fps(func):
+    """
+    这是一个计算帧率的装饰器
+    """
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        print('fps:', 1 / (time.time() - start))
+        return result
+    return wrapper
+
+def display_avg_fps_decorator(func):
+    def wrapper(*args, **kwargs):
+        avg_fps = 0
+        t1 = time.time()
+        result = func(*args, **kwargs)
+        self = args[0]  # 获取self参数
+        avg_fps = (avg_fps + (self.vid_stride / (time.time() - t1))) / 2
+        self.im_show = cv2.putText(self.im_show, f"FPS={avg_fps:.2f}", (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)  # 显示fps
+        return result
+    return wrapper
 
 def interpolate_bbox(bbox1, bbox2, n=1):
     # bbox转np.array
@@ -13,6 +36,24 @@ def interpolate_bbox(bbox1, bbox2, n=1):
 
     # 返回插值后的 bbox
     return bbox_n
+
+
+class Splice:
+    """
+    这是一个拼接图片类，将一组图片按宫格拼接成一张大图
+    """
+    def __init__(self, scale, show_shape, grid_shape):
+        self.scale = scale
+        self.show_w, self.show_h = show_shape
+        self.grid_w, self.grid_h = grid_shape
+
+    def __call__(self, im_list):
+        im = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
+        for i, im0 in enumerate(im_list):
+            im0 = cv2.resize(im0, (self.grid_w, self.grid_h))
+            im[self.grid_h*(i//self.scale):self.grid_h*(1+(i//self.scale)),
+               self.grid_w*(i%self.scale):self.grid_w*(1+(i%self.scale))] = im0
+        return im
 
 
 class Timer:

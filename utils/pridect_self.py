@@ -9,6 +9,8 @@ from ultralytics.data.loaders import LoadStreams
 from ultralytics.data.augment import LetterBox
 from queue import Queue
 
+from utils.toolbox import Splice
+
 
 class Pridect:
     def __init__(
@@ -39,6 +41,8 @@ class Pridect:
 
         self.run = True  # 运行标志
         self.first_run = True  # 第一次运行标志
+
+        self.splicer = Splice(self.scale, (self.show_w, self.show_h), (self.grid_w, self.grid_h))
 
     def start(self):
         if self.first_run == True:  # 第一次运行
@@ -94,22 +98,12 @@ class Pridect:
                 group[i%self.group_scale] = q.get()
 
                 if i%self.group_scale == self.group_scale-1:  # 一组视频收集完毕
-                    result_groups[i//self.group_scale] = self.splice(group, self.scale)  # 拼接图片
+                    result_groups[i//self.group_scale] = self.splicer(group)  # 拼接图片
 
             self.im_show = result_groups[self.group_index]
             self.im_show = cv2.putText(self.im_show, f"FPS={avg_fps:.2f}", (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)  # 显示fps
             avg_fps = (avg_fps + (self.vid_stride / (time.time() - t1))) / 2
         print('collect_results结束')
-    
-    def splice(self, im_list, scale):
-        """
-        拼接图片
-        """
-        im = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
-        for i, im0 in enumerate(im_list):
-            im0 = cv2.resize(im0, (self.grid_w, self.grid_h))
-            im[self.grid_h*(i//scale):self.grid_h*(1+(i//scale)), self.grid_w*(i%scale):self.grid_w*(1+(i%scale))] = im0
-        return im
 
     # 需要抽象为类，每路加载不同的配置文件
     def run_tracker_in_thread(self, filename, weight, file_index, q):

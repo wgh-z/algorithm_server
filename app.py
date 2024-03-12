@@ -9,7 +9,7 @@ from flask import Flask, Response, request, jsonify, render_template
 from flask_cors import CORS
 from views.clicks import clicks_blueprint # mouse_operation
 from views.model_management import model_blueprint # model_management
-from utils.pridect import Pridect
+from utils.pridect_self import Pridect
 import time
 
 

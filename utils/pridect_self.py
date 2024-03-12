@@ -9,7 +9,7 @@ from ultralytics.data.loaders import LoadStreams
 from ultralytics.data.augment import LetterBox
 from queue import Queue
 
-from utils.toolbox import Splice
+from utils.toolbox import SquareSplice
 from models.track import Track
 
 class Pridect:
@@ -34,15 +34,13 @@ class Pridect:
         self.group_index = 0  # 当前显示的组索引
 
         self.scale = int(np.ceil(np.sqrt(group_scale)))  # 横纵方向的视频数量
-        self.grid_w = int(self.show_w / self.scale)
-        self.grid_h = int(self.show_h / self.scale)
 
         self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
 
         self.run = True  # 运行标志
         self.first_run = True  # 第一次运行标志
 
-        self.splicer = Splice(self.scale, (self.show_w, self.show_h), (self.grid_w, self.grid_h))
+        self.splicer = SquareSplice(self.scale, show_shape=(self.show_w, self.show_h))
 
     def start(self):
         if self.first_run == True:  # 第一次运行
@@ -51,15 +49,15 @@ class Pridect:
             n = len(source_list)
             self.group_num = int(np.ceil(n/self.group_scale))  # 组数
             self.tracker_thread_list = []
-            self.q_in_list = [None] * n
-            self.q_out_list = [None] * n
+            # self.q_in_list = [Queue(30)] * n
+            self.q_in_list = []
+            # self.q_out_list = [Queue(30)] * n
 
             # 追踪检测线程
             for i, source in enumerate(source_list):
                 q_in = Queue(30)
-                q_out = Queue(30)
                 self.q_in_list.append(q_in)
-                self.q_out_list.append(q_out)
+                # q_out = Queue(30)
                 tracker_thread = threading.Thread(
                     target=self.run_tracker_in_thread,
                     args=( self.weight, self.imgsz, source, self.vid_stride, i, q_in),

@@ -11,7 +11,8 @@ from queue import Queue
 # from ultralytics.data.loaders import LoadStreams
 # from ultralytics.data.augment import LetterBox
 
-from utils.toolbox import SquareSplice, VideoDisplayManage
+from utils.toolbox import SquareSplice
+from utils.video_io import VideoDisplayManage, ReadVideo
 from models.track import Track
 
 
@@ -54,6 +55,7 @@ class SmartBackend:
         if self.first_run == True:  # 第一次运行
             self.first_run = False
 
+            self.video_reader_list = [None] * self.n
             self.tracker_thread_list = [None] * self.n
             self.q_in_list = [Queue(30) for i in range(self.n)]
             # self.q_out_list = [Queue(30) for i in range(self.groups_num)]
@@ -64,10 +66,12 @@ class SmartBackend:
             self.clear_up()
             # 追踪检测线程
             for i, source in enumerate(self.source_list):
+                self.video_reader_list[i] = ReadVideo(source)
                 # q_out = Queue(30)
                 tracker_thread = threading.Thread(
                     target=self.run_tracker_in_thread,
-                    args=( self.weight, self.imgsz, source, self.vid_stride, i, self.q_in_list[i]),
+                    args=(self.weight, self.imgsz, source, self.vid_stride, i,
+                          self.q_in_list[i], self.video_reader_list[i]),
                     daemon=False
                     )
                 self.tracker_thread_list[i] = tracker_thread
@@ -131,7 +135,8 @@ class SmartBackend:
         pass
 
     # 需要抽象为类，每路加载不同的配置文件
-    def run_tracker_in_thread(self, weight, imgsz, stream, vid_stride, file_index, q):
+    def run_tracker_in_thread(self, weight, imgsz, stream, vid_stride,
+                              file_index, q, video_reader):
         """
         Runs a video file or webcam stream concurrently with the YOLOv8 model using threading.
 
@@ -154,37 +159,12 @@ class SmartBackend:
         cap = cv2.VideoCapture(stream, cv2.CAP_FFMPEG)  # Read the video file
         while self.running:
             # print(f'第{file_index}路:{self.run}')
-            success, frame = cap.read()  # Read the video frames
-            if not success:
-                cap.release()
-                cap = cv2.VideoCapture(stream)
-            
+            frame = video_reader()
+            if frame is None:
+                break
+
             annotated_frame, show_id = tracker(frame, {})
             q.put(annotated_frame) if not q.full() else q.get()
         # Release video sources
         cap.release()
         print(f"第{file_index}路已停止")
-
-
-if __name__ == "__main__":
-    weight = r'E:\Projects\weight\yolo\v8\detect\coco\yolov8s.pt'
-    stream = 'list.streams'
-    imgsz = 640
-    predicter = SmartBackend(weight, stream, imgsz)
-    predicter.start()
-    print('done!')
-
-
-    # model = YOLO(weight, task='detect')
-    # results = model.track(
-    #     source=stream,
-    #     classes=[0, 2],
-    #     # tracker="bytetrack.yaml",  # 20fps
-    #     imgsz=imgsz,
-    #     stream=True,
-    #     # show=True,
-    #     # verbose=False
-    #     )  # 生成器
-
-    # for result in results:
-    #     print(result)

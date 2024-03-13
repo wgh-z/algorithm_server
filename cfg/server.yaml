@@ -2,6 +2,6 @@ ip: 0.0.0.0
 port: 3000
 group_scale: 4  # 每组几路视频
 weight: 'E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt'
-imgsz: 640  # 检测尺寸
+detect_size: 640  # 检测尺寸
 sources: 'list.streams'
 video_stride: 5  # 检测帧间隔

@@ -59,22 +59,10 @@
             // 左
             console.log('left');
             sendPosition('/keyleft', 0, 0)
-        } else if (key === 38) {
-            // 上
-            console.log('up');
-            sendPosition('/keyup', 0, 0)
         } else if (key === 39) {
             // 右
             console.log('right');
             sendPosition('/keyright', 0, 0)
-        } else if (key === 40) {
-            // 下
-            console.log('down');
-            sendPosition('/keydown', 0, 0)
-        } else if (key === 32) {
-            // space
-            console.log('space');
-            sendPosition('/keyspace', 0, 0)
         } else if (key === 83) {
             // s键
             console.log('s');
@@ -87,6 +75,10 @@
             // q键
             console.log('q');
             sendPosition('/keyq', 0, 0)
+        } else if (key === 13) {
+            // enter键
+            console.log('enter');
+            sendPosition('/keyenter', 0, 0)
         }
     }
 

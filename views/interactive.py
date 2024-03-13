@@ -15,7 +15,7 @@ def interactive_blueprint(predicter):
         y = float(request.args["yrate"])
         d_click_rate = (x, y)
         print('doubleleft==', d_click_rate)
-        result = predicter.select_intragroup(d_click_rate)
+        result = predicter.display_manager.select_intragroup(d_click_rate)
         return jsonify({'code': 200, 'msg': result})
 
     # 双击左键进入组内显示
@@ -25,14 +25,14 @@ def interactive_blueprint(predicter):
         y = float(request.json['y'])
         d_click_rate = (x, y)
         print('doubleleft==', d_click_rate)
-        result = predicter.select_intragroup(d_click_rate)
+        result = predicter.display_manager.select_intragroup(d_click_rate)
         return jsonify({'code': 200, 'msg': result})
     
     # q键退出组内显示
     @interactive_operation.route('/keyq', methods=['POST'])
     def keyq():
         print('keyq')
-        result = predicter.exit_intragroup()
+        result = predicter.display_manager.exit_intragroup()
         print(result)
         return jsonify({'code': 200, 'msg': result})
 
@@ -40,7 +40,7 @@ def interactive_blueprint(predicter):
     @interactive_operation.route('/keyleft', methods=['POST'])
     def keyleft():
         print('keyleft')
-        result = predicter.prior_group()
+        result = predicter.display_manager.switch_group(-1)
         print(result)
         return jsonify({'code': 200, 'msg': result})
 
@@ -48,7 +48,7 @@ def interactive_blueprint(predicter):
     @interactive_operation.route('/keyright', methods=['POST'])
     def keyright():
         print('keyright')
-        result = predicter.next_group()
+        result = predicter.display_manager.switch_group()
         print(result)
         return jsonify({'code': 200, 'msg': result})
     

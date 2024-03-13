@@ -4,27 +4,27 @@
 # server的主程序，用于启动flask服务
 import cv2
 import yaml
+import time
 # from pathlib import Path
-from flask import Flask, Response, request, jsonify, render_template
+from flask import Flask, Response, render_template, request, jsonify
 from flask_cors import CORS
 from views.interactive import interactive_blueprint
 from views.model_management import model_blueprint
 from utils.backend import SmartBackend
-import time
 
 
-weight = r'E:\Projects\weight\yolo\v8\detect\coco\yolov8m.pt'
-stream = 'list.streams'
-imgsz = 640
-predicter = SmartBackend(weight, stream, imgsz, group_scale=4, vid_stride=5)
+with open('cfg/server.yaml', 'r', encoding='utf-8') as f:
+    cfg = yaml.load(f, Loader=yaml.FullLoader)
+
+predicter = SmartBackend(
+    cfg['weight'], cfg['sources'], cfg['imgsz'],
+    group_scale=cfg['group_scale'], vid_stride=cfg['video_stride']
+    )
 
 app = Flask(__name__)
 app.register_blueprint(interactive_blueprint(predicter))
 app.register_blueprint(model_blueprint(predicter))
 CORS(app, supports_credentials=True)  # 允许跨域请求
-
-with open('cfg/server.yaml', 'r', encoding='utf-8') as f:
-    cfg = yaml.load(f, Loader=yaml.FullLoader)
 
 @app.route('/')
 def index():
@@ -34,7 +34,7 @@ def generate():
     predicter.start()
     show_fps = 3
     sleep_time = 1 / show_fps
-    while predicter.run:
+    while predicter.running:
         frame = predicter.get_results()
         frame = cv2.resize(frame, (1280, 720))
         ret, buffer = cv2.imencode('.jpg', frame)

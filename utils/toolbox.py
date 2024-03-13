@@ -66,11 +66,14 @@ class SquareSplice:
         self.void_img = np.zeros((720, 1280, 3), dtype=np.uint8)  # 720p黑色图像
         self.void_img = cv2.putText(self.void_img, 'no video', (500, 360), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 2)
 
-    def __call__(self, im_list, divider=True):
+    def __call__(self, im_lists: list, divider=True):
+        im_list = im_lists.copy()
         im = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
         for i in range(self.show_num - len(im_list)):
             im_list.append(self.void_img)
         for i, im0 in enumerate(im_list):
+            if im0 is None:
+                im0 = self.void_img
             im0 = cv2.resize(im0, (self.grid_w, self.grid_h))
             im[self.grid_h * (i // self.scale):self.grid_h * (1 + (i // self.scale)),
                 self.grid_w * (i % self.scale):self.grid_w * (1 + (i % self.scale))] = im0

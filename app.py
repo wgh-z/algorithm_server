@@ -7,19 +7,19 @@ import yaml
 # from pathlib import Path
 from flask import Flask, Response, request, jsonify, render_template
 from flask_cors import CORS
-from views.clicks import clicks_blueprint # mouse_operation
-from views.model_management import model_blueprint # model_management
-from utils.pridect_self import Pridect
+from views.interactive import interactive_blueprint
+from views.model_management import model_blueprint
+from utils.backend import SmartBackend
 import time
 
 
 weight = r'E:\Projects\weight\yolo\v8\detect\coco\yolov8m.pt'
 stream = 'list.streams'
 imgsz = 640
-predicter = Pridect(weight, stream, imgsz, vid_stride=5)
+predicter = SmartBackend(weight, stream, imgsz, group_scale=4, vid_stride=5)
 
 app = Flask(__name__)
-app.register_blueprint(clicks_blueprint(predicter))
+app.register_blueprint(interactive_blueprint(predicter))
 app.register_blueprint(model_blueprint(predicter))
 CORS(app, supports_credentials=True)  # 允许跨域请求
 

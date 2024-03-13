@@ -12,7 +12,7 @@ from queue import Queue
 from utils.toolbox import SquareSplice
 from models.track import Track
 
-class Pridect:
+class SmartBackend:
     def __init__(
             self,
             weight,
@@ -31,7 +31,8 @@ class Pridect:
         self.show_h = show_h
         self.vid_stride = vid_stride
 
-        self.group_index = 0  # 当前显示的组索引
+        self.intergroup_index = 0  # 组间索引
+        self.intragroup_index = -1  # 组内索引。-1表示宫格显示，0-3表示单路显示
 
         self.scale = int(np.ceil(np.sqrt(group_scale)))  # 横纵方向的视频数量
 
@@ -47,7 +48,7 @@ class Pridect:
             self.first_run = False
             source_list = Path(self.source).read_text().rsplit()
             n = len(source_list)
-            self.group_num = int(np.ceil(n/self.group_scale))  # 组数
+            self.groups_num = int(np.ceil(n/self.group_scale))  # 组数
             self.tracker_thread_list = []
             # self.q_in_list = [Queue(30)] * n
             self.q_in_list = []
@@ -85,12 +86,22 @@ class Pridect:
             tracker_thread.join()
 
     def next_group(self):
-        self.group_index = (self.group_index + 1) % self.group_num
-        return self.group_index
+        self.intergroup_index = (self.intergroup_index + 1) % self.groups_num
+        return f'当前显示第{self.intergroup_index}组视频'
 
     def prior_group(self):
-        self.group_index = (self.group_index - 1) % self.group_num
-        return self.group_index
+        self.intergroup_index = (self.intergroup_index - 1) % self.groups_num
+        return f'当前显示第{self.intergroup_index}组视频'
+    
+    # 选择组内视频
+    def select_intragroup(self, d_click_rate: tuple):
+        x, y = d_click_rate
+        self.intragroup_index = int(x//(1/self.scale) + (y//(1/self.scale))*self.scale)
+        return f'当前显示第{self.intergroup_index}组，第{self.intragroup_index}路视频'
+
+    def exit_intragroup(self):
+        self.intragroup_index = -1
+        return f'当前显示第{self.intergroup_index}组视频'
 
     def get_results(self):
         return self.im_show
@@ -99,7 +110,7 @@ class Pridect:
         # temp_grid = np.zeros((self.grid_h, self.grid_w, 3), dtype=np.uint8)
         # temp_im = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
         group = [None] * self.group_scale
-        result_groups = [None] * self.group_num
+        result_groups = [None] * self.groups_num
         avg_fps = 0
         while self.run:
             t1 = time.time()
@@ -107,9 +118,12 @@ class Pridect:
                 group[i%self.group_scale] = q.get()
 
                 if i%self.group_scale == self.group_scale-1:  # 一组视频收集完毕
-                    result_groups[i//self.group_scale] = self.splicer(group)  # 拼接图片
+                    if self.intragroup_index == -1:  # 宫格显示
+                        result_groups[i//self.group_scale] = self.splicer(group)  # 拼接图片
+                    else:  # 单路显示
+                        result_groups[i//self.group_scale] = group[self.intragroup_index]
 
-            self.im_show = result_groups[self.group_index]
+            self.im_show = result_groups[self.intergroup_index]
             self.im_show = cv2.putText(self.im_show, f"FPS={avg_fps:.2f}", (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)  # 显示fps
             avg_fps = (avg_fps + (self.vid_stride / (time.time() - t1))) / 2
         print('collect_results结束')
@@ -157,7 +171,7 @@ if __name__ == "__main__":
     weight = r'E:\Projects\weight\yolo\v8\detect\coco\yolov8s.pt'
     stream = 'list.streams'
     imgsz = 640
-    predicter = Pridect(weight, stream, imgsz)
+    predicter = SmartBackend(weight, stream, imgsz)
     predicter.start()
     print('done!')
 

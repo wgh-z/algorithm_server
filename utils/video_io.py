@@ -30,6 +30,12 @@ class VideoDisplayManage:
         self.intragroup_index = -1
         return f'当前显示第{self.intergroup_index}组视频'
     
+    def get_display_index(self):
+        if self.intragroup_index == -1:
+            return self.intergroup_index+1
+        else:
+            return self.intergroup_index+1, self.intragroup_index+1
+    
     def reset(self):
         self.intergroup_index = 0
         self.exit_intragroup()

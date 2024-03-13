@@ -47,7 +47,8 @@ class SmartBackend:
         self.video_reader_list = [None] * n
         self.tracker_thread_list = [None] * n
         self.q_in_list = [Queue(30) for _ in range(n)]
-        self.q_out_list = [Queue(30) for _ in range(self.n)]
+        # self.q_out_list = [Queue(30) for _ in range(n)]
+        self.frame_list = [None] * n  # 用于存储每路视频的帧
 
         # 工具类
         self.splicer = SquareSplice(self.scale, show_shape=(self.show_w, self.show_h))
@@ -120,8 +121,12 @@ class SmartBackend:
                         result_groups[i // self.group_scale] = group[self.display_manager.intragroup_index]
 
             self.im_show = result_groups[self.display_manager.intergroup_index]
-            self.im_show = cv2.putText(self.im_show, f"FPS={avg_fps:.2f}", (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                                       (0, 255, 0), 2)  # 显示fps
+            self.im_show = cv2.putText(self.im_show, f"FPS={avg_fps:.2f}", (0, 40),
+                                       cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)  # 显示fps
+
+            self.im_show = cv2.putText(self.im_show, f"{self.display_manager.get_display_index()}",
+                                       (self.show_w-100, 40),
+                                       cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)  # 显示组数和路数
             avg_fps = (avg_fps + (self.vid_stride / (time.time() - t1))) / 2
         print('collect_results结束')
 
@@ -134,8 +139,7 @@ class SmartBackend:
         """
         """
         tracker = Track(weight, imgsz, vid_stride=vid_stride)
-        # warmup
-        _, _ = tracker(self.im_show, {})
+        _, _ = tracker(self.im_show, {})  # warmup
 
         while self.running:
             # print(f'第{file_index}路:{self.run}')

@@ -17,7 +17,7 @@ with open('cfg/server.yaml', 'r', encoding='utf-8') as f:
     cfg = yaml.load(f, Loader=yaml.FullLoader)
 
 predictor = SmartBackend(
-    cfg['weight'], cfg['sources'], cfg['detect_size'],
+    weight=cfg['weight'], source=cfg['sources'], imgsz=cfg['detect_size'],
     group_scale=cfg['group_scale'], vid_stride=cfg['video_stride']
     )
 

@@ -44,11 +44,12 @@ class Track:
         # inference
         results = self.model.track(
             frame,
-            persist=True,
             classes=self.classes,
             tracker=self.tracker,
             imgsz=self.imgsz,
-            verbose=self.verbose
+            half=True,
+            verbose=self.verbose,
+            persist=True
             )
 
         # maintain show_id

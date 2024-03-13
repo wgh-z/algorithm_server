@@ -3,14 +3,17 @@ import cv2
 import time
 import threading
 import numpy as np
+# import torch
 from pathlib import Path
-from ultralytics import YOLO
-from ultralytics.data.loaders import LoadStreams
-from ultralytics.data.augment import LetterBox
 from queue import Queue
 
-from utils.toolbox import SquareSplice
+# from ultralytics import YOLO
+# from ultralytics.data.loaders import LoadStreams
+# from ultralytics.data.augment import LetterBox
+
+from utils.toolbox import SquareSplice, VideoDisplayManage
 from models.track import Track
+
 
 class SmartBackend:
     def __init__(
@@ -24,47 +27,50 @@ class SmartBackend:
             vid_stride: int = 1
             ) -> None:
         self.weight = weight
-        self.source = source
+
+        self.source_list = Path(source).read_text().rsplit()
+        self.n = len(self.source_list)
+
         self.imgsz = imgsz
         self.group_scale = group_scale
+        self.groups_num = int(np.ceil(self.n/self.group_scale))  # 组数
+
         self.show_w = show_w
         self.show_h = show_h
         self.vid_stride = vid_stride
 
-        self.intergroup_index = 0  # 组间索引
-        self.intragroup_index = -1  # 组内索引。-1表示宫格显示，0-3表示单路显示
-
+        
         self.scale = int(np.ceil(np.sqrt(group_scale)))  # 横纵方向的视频数量
 
         self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
 
-        self.run = True  # 运行标志
+        self.running = False  # 运行标志
         self.first_run = True  # 第一次运行标志
 
         self.splicer = SquareSplice(self.scale, show_shape=(self.show_w, self.show_h))
+        self.display_manager = VideoDisplayManage(self.groups_num, self.scale)
 
     def start(self):
         if self.first_run == True:  # 第一次运行
             self.first_run = False
-            source_list = Path(self.source).read_text().rsplit()
-            n = len(source_list)
-            self.groups_num = int(np.ceil(n/self.group_scale))  # 组数
-            self.tracker_thread_list = []
-            # self.q_in_list = [Queue(30)] * n
-            self.q_in_list = []
-            # self.q_out_list = [Queue(30)] * n
 
+            self.tracker_thread_list = [None] * self.n
+            self.q_in_list = [Queue(30) for i in range(self.n)]
+            # self.q_out_list = [Queue(30) for i in range(self.groups_num)]
+
+        if self.running == False:  # 防止重复启动
+            self.running = True
+            
+            self.clear_up()
             # 追踪检测线程
-            for i, source in enumerate(source_list):
-                q_in = Queue(30)
-                self.q_in_list.append(q_in)
+            for i, source in enumerate(self.source_list):
                 # q_out = Queue(30)
                 tracker_thread = threading.Thread(
                     target=self.run_tracker_in_thread,
-                    args=( self.weight, self.imgsz, source, self.vid_stride, i, q_in),
+                    args=( self.weight, self.imgsz, source, self.vid_stride, i, self.q_in_list[i]),
                     daemon=False
                     )
-                self.tracker_thread_list.append(tracker_thread)
+                self.tracker_thread_list[i] = tracker_thread
                 tracker_thread.start()
 
             # 更新结果线程
@@ -72,36 +78,29 @@ class SmartBackend:
             show_thread.start()
 
     def stop(self):
-        self.run = False
+        self.running = False
+        self.wait_thread()
+        self.clear_up()
+        print('模型已结束')
+
+    def wait_thread(self):
         for tracker_thread in self.tracker_thread_list:
             tracker_thread.join()
+        
+    def clear_up(self):
         for q in self.q_in_list:
             q.queue.clear()
-        print('模型已结束')
-        self.run = True
-        self.first_run = True
 
-    def join(self):
-        for tracker_thread in self.tracker_thread_list:
-            tracker_thread.join()
+        # 清理显示管理器
+        # self.display_manager.reset()
 
-    def next_group(self):
-        self.intergroup_index = (self.intergroup_index + 1) % self.groups_num
-        return f'当前显示第{self.intergroup_index}组视频'
-
-    def prior_group(self):
-        self.intergroup_index = (self.intergroup_index - 1) % self.groups_num
-        return f'当前显示第{self.intergroup_index}组视频'
-    
-    # 选择组内视频
-    def select_intragroup(self, d_click_rate: tuple):
-        x, y = d_click_rate
-        self.intragroup_index = int(x//(1/self.scale) + (y//(1/self.scale))*self.scale)
-        return f'当前显示第{self.intergroup_index}组，第{self.intragroup_index}路视频'
-
-    def exit_intragroup(self):
-        self.intragroup_index = -1
-        return f'当前显示第{self.intergroup_index}组视频'
+        # 清理显存
+        # if torch.cuda.is_available():
+        #     with torch.cuda.device('cuda:0'):
+        #         torch.cuda.empty_cache()
+        #         torch.cuda.ipc_collect()
+        
+        self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
 
     def get_results(self):
         return self.im_show
@@ -112,18 +111,18 @@ class SmartBackend:
         group = [None] * self.group_scale
         result_groups = [None] * self.groups_num
         avg_fps = 0
-        while self.run:
+        while self.running:
             t1 = time.time()
             for i, q in enumerate(self.q_in_list):
                 group[i%self.group_scale] = q.get()
 
                 if i%self.group_scale == self.group_scale-1:  # 一组视频收集完毕
-                    if self.intragroup_index == -1:  # 宫格显示
+                    if self.display_manager.intragroup_index == -1:  # 宫格显示
                         result_groups[i//self.group_scale] = self.splicer(group)  # 拼接图片
                     else:  # 单路显示
-                        result_groups[i//self.group_scale] = group[self.intragroup_index]
+                        result_groups[i//self.group_scale] = group[self.display_manager.intragroup_index]
 
-            self.im_show = result_groups[self.intergroup_index]
+            self.im_show = result_groups[self.display_manager.intergroup_index]
             self.im_show = cv2.putText(self.im_show, f"FPS={avg_fps:.2f}", (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)  # 显示fps
             avg_fps = (avg_fps + (self.vid_stride / (time.time() - t1))) / 2
         print('collect_results结束')
@@ -153,7 +152,7 @@ class SmartBackend:
 
         # opencv-python                4.8.1.78
         cap = cv2.VideoCapture(stream, cv2.CAP_FFMPEG)  # Read the video file
-        while self.run:
+        while self.running:
             # print(f'第{file_index}路:{self.run}')
             success, frame = cap.read()  # Read the video frames
             if not success:

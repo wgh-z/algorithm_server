@@ -28,40 +28,35 @@ class SmartBackend:
             vid_stride: int = 1
     ) -> None:
         self.weight = weight
-
         self.source_list = Path(source).read_text().rsplit()
-        n = len(self.source_list)
-
         self.imgsz = imgsz
-        self.group_scale = group_scale
-        self.groups_num = int(np.ceil(n / self.group_scale))  # 组数
-
         self.show_w = show_w
         self.show_h = show_h
         self.vid_stride = vid_stride
 
+        # 参数计算
+        n = len(self.source_list)
+        self.group_scale = group_scale
+        self.scale = int(np.ceil(np.sqrt(group_scale)))  # 横纵方向的视频数量
+        self.groups_num = int(np.ceil(n / self.group_scale))  # 组数
+
         self.running = False  # 运行标志
 
+        # 初始化共享变量
         self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
         self.video_reader_list = [None] * n
         self.tracker_thread_list = [None] * n
         self.q_in_list = [Queue(30) for _ in range(n)]
-        # self.q_out_list = [Queue(30) for i in range(self.n)]
-        # self.first_run = True  # 第一次运行标志
+        self.q_out_list = [Queue(30) for _ in range(self.n)]
 
-        self.scale = int(np.ceil(np.sqrt(group_scale)))  # 横纵方向的视频数量
-
+        # 工具类
         self.splicer = SquareSplice(self.scale, show_shape=(self.show_w, self.show_h))
         self.display_manager = VideoDisplayManage(self.groups_num, self.scale)
 
     def start(self):
-        # if self.first_run:  # 第一次运行
-        #     self.first_run = False
-
         if not self.running:  # 防止重复启动
             self.running = True
 
-            # self.clear_up()
             # 追踪检测线程
             for i, source in enumerate(self.source_list):
                 self.video_reader_list[i] = ReadVideo(source)
@@ -110,8 +105,6 @@ class SmartBackend:
         return self.im_show
 
     def update_results(self):
-        # temp_grid = np.zeros((self.grid_h, self.grid_w, 3), dtype=np.uint8)
-        # temp_im = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
         group = [None] * self.group_scale
         result_groups = [None] * self.groups_num
         avg_fps = 0

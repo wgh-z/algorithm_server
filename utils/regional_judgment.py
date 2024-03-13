@@ -8,6 +8,7 @@ def point_in_rect(point, rect):  # xy, xyxy
             is_in = True
     return is_in
 
+
 # 点是否在多边形内部
 def point_in_polygon(point, poly_points):
     is_in = False
@@ -16,16 +17,17 @@ def point_in_polygon(point, poly_points):
     j = points_num - 1
     while i < points_num - 1:
         i += 1
-        #测试对应的点
+        # 测试对应的点
         # print(i, poly[i], j, poly[j])
 
-        if ((poly_points[i][0] <= point[0] and point[0] < poly_points[j][0]) or
-            (poly_points[j][0] <= point[0] and point[0] < poly_points[i][0])):
-            if(point[1] < (poly_points[j][1]-poly_points[i][1]) * (point[0]-poly_points[i][0])/(
-                poly_points[j][0]-poly_points[i][0])+poly_points[i][1]):
+        if ((poly_points[i][0] <= point[0] < poly_points[j][0]) or
+                (poly_points[j][0] <= point[0] < poly_points[i][0])):
+            if (point[1] < (poly_points[j][1] - poly_points[i][1]) * (point[0] - poly_points[i][0]) / (
+                    poly_points[j][0] - poly_points[i][0]) + poly_points[i][1]):
                 is_in = not is_in
-        j=i
+        j = i
     return is_in
+
 
 # 多边形是否在多边形内部:
 def ploy_in_polygon(poly1, poly2):
@@ -33,4 +35,3 @@ def ploy_in_polygon(poly1, poly2):
         if not point_in_polygon(point, poly2):
             return False
     return True
-

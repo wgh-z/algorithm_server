@@ -5,7 +5,7 @@
 from flask import Blueprint, request, jsonify
 
 
-def interactive_blueprint(predicter):
+def interactive_blueprint(predictor):
     interactive_operation = Blueprint('mouse_operation', __name__)
 
     # 双击左键进入组内显示
@@ -15,7 +15,7 @@ def interactive_blueprint(predicter):
         y = float(request.args["yrate"])
         d_click_rate = (x, y)
         print('doubleleft==', d_click_rate)
-        result = predicter.display_manager.select_intragroup(d_click_rate)
+        result = predictor.display_manager.select_intragroup(d_click_rate)
         return jsonify({'code': 200, 'msg': result})
 
     # 双击左键进入组内显示
@@ -25,14 +25,14 @@ def interactive_blueprint(predicter):
         y = float(request.json['y'])
         d_click_rate = (x, y)
         print('doubleleft==', d_click_rate)
-        result = predicter.display_manager.select_intragroup(d_click_rate)
+        result = predictor.display_manager.select_intragroup(d_click_rate)
         return jsonify({'code': 200, 'msg': result})
-    
+
     # q键退出组内显示
     @interactive_operation.route('/keyq', methods=['POST'])
     def keyq():
         print('keyq')
-        result = predicter.display_manager.exit_intragroup()
+        result = predictor.display_manager.exit_intragroup()
         print(result)
         return jsonify({'code': 200, 'msg': result})
 
@@ -40,7 +40,7 @@ def interactive_blueprint(predicter):
     @interactive_operation.route('/keyleft', methods=['POST'])
     def keyleft():
         print('keyleft')
-        result = predicter.display_manager.switch_group(-1)
+        result = predictor.display_manager.switch_group(-1)
         print(result)
         return jsonify({'code': 200, 'msg': result})
 
@@ -48,10 +48,10 @@ def interactive_blueprint(predicter):
     @interactive_operation.route('/keyright', methods=['POST'])
     def keyright():
         print('keyright')
-        result = predicter.display_manager.switch_group()
+        result = predictor.display_manager.switch_group()
         print(result)
         return jsonify({'code': 200, 'msg': result})
-    
+
     # e键编辑检测区域
     @interactive_operation.route('/keye', methods=['POST'])
     def keye():
@@ -67,7 +67,7 @@ def interactive_blueprint(predicter):
         l_rate = (x, y)
         print('left==', l_rate)
         return jsonify({'code': 200, 'msg': 'success'})
-    
+
     # 单击左键再按e添加检测区域点
     @interactive_operation.route('/click', methods=['POST'])
     def click():
@@ -75,6 +75,5 @@ def interactive_blueprint(predicter):
         y = float(request.json['y'])
         l_rate = (x, y)
         return jsonify({'code': 200, 'msg': 'success'})
-
 
     return interactive_operation

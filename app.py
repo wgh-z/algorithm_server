@@ -42,11 +42,14 @@ def generate():
         frame = cv2.resize(frame, (1280, 720))
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
-        yield b'--frame\r\n' + \
-              b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n'  # concat frame one by one and show result
+        yield b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + \
+              frame + b'\r\n'  # concat frame one by one and show result
         spend_time = time.time() - t1
         time.sleep(sleep_time-spend_time if spend_time < sleep_time else 0)
+
     print('帧获取结束')
+    # return b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + \
+    #           b'' + b'\r\n'
 
 
 @app.route('/video_feed', methods=['GET'])

@@ -4,9 +4,9 @@ import time
 
 
 class VideoDisplayManage:
-    '''
+    """
     这是一个视频显示管理类，用于管理视频显示
-    '''
+    """
     def __init__(self, groups_num, scale) -> None:
         self.groups_num = groups_num
         self.scale = scale
@@ -36,9 +36,9 @@ class VideoDisplayManage:
 
 
 class ReadVideo:
-    '''
+    """
     这是一个视频读取类，用于读取视频
-    '''
+    """
     def __init__(self, source, timeout: int = 2) -> None:
         self.source = source
         self.cap = cv2.VideoCapture(self.source)
@@ -54,5 +54,10 @@ class ReadVideo:
                 success, frame = self.cap.read()
                 if time.time() - start_time > self.timeout:  # 2s超时
                     print(f'视频{self.source}读取超时')
+                    self.release()
                     return None
         return frame
+
+    def release(self):
+        self.cap.release()
+        print(f'视频{self.source}已释放')

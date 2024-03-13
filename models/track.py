@@ -6,19 +6,20 @@ from utils.regional_judgment import point_in_rect
 
 
 class Track:
-    '''
+    """
     针对每帧结果的自定义追踪模型
-    '''
+    """
+
     def __init__(
             self,
             weight,
-            imgsz=[640, 640],
+            imgsz=(640, 640),
             classes=[0, 2],
             tracker="bytetrack.yaml",
             verbose=False,
             show_fps=False,
             vid_stride=1
-            ):
+    ):
         # init params
         self.imgsz = imgsz
         self.classes = classes
@@ -34,7 +35,7 @@ class Track:
         # 跳帧计算
         self.interpolator = Interpolator(vid_stride=vid_stride)
 
-    def __call__(self, frame, show_id:dict, l_rate=None, r_rate=None):
+    def __call__(self, frame, show_id: dict, l_rate=None, r_rate=None):
         # click point
         w, h = frame.shape[1], frame.shape[0]
         l_point = (int(w * l_rate[0]), int(h * l_rate[1])) if l_rate is not None else None
@@ -50,7 +51,7 @@ class Track:
             half=True,
             verbose=self.verbose,
             persist=True
-            )
+        )
 
         # maintain show_id
         try:
@@ -62,7 +63,7 @@ class Track:
         # 自定义绘制
         annotated_frame = frame.copy()
         annotator = Annotator(annotated_frame, line_width=4, example=str(results[0].names))
-        
+
         # 中间帧插值
         det = self.interpolator(results[0].boxes.data.cpu().numpy())
         if len(det) and len(det[0]) == 7:

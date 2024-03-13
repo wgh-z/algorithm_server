@@ -18,7 +18,7 @@ class Track:
             tracker="bytetrack.yaml",
             verbose=False,
             show_fps=False,
-            vid_stride=1
+            vid_stride=10
     ):
         # init params
         self.imgsz = imgsz
@@ -35,6 +35,10 @@ class Track:
         # 跳帧计算
         self.interpolator = Interpolator(vid_stride=vid_stride)
 
+        self.vid_stride = vid_stride
+        self.count = 0
+        self.prior_result = None
+
     def __call__(self, frame, show_id: dict, l_rate=None, r_rate=None):
         # click point
         w, h = frame.shape[1], frame.shape[0]
@@ -42,16 +46,23 @@ class Track:
         r_point = (int(w * r_rate[0]), int(h * r_rate[1])) if r_rate is not None else None
         # print('show_id==', show_id, l_point, r_point)
 
-        # inference
-        results = self.model.track(
-            frame,
-            classes=self.classes,
-            tracker=self.tracker,
-            imgsz=self.imgsz,
-            half=True,
-            verbose=self.verbose,
-            persist=True
-        )
+        if self.count % self.vid_stride == 0:
+            # inference
+            results = self.model.track(
+                frame,
+                classes=self.classes,
+                tracker=self.tracker,
+                imgsz=self.imgsz,
+                half=True,
+                verbose=self.verbose,
+                persist=True
+            )
+            self.prior_result = results
+            # self.count = 0
+            # print('results', self.count)
+        else:
+            results = self.prior_result
+        self.count += 1
 
         # maintain show_id
         try:
@@ -65,7 +76,8 @@ class Track:
         annotator = Annotator(annotated_frame, line_width=4, example=str(results[0].names))
 
         # 中间帧插值
-        det = self.interpolator(results[0].boxes.data.cpu().numpy())
+        # det = self.interpolator(results[0].boxes.data.cpu().numpy())
+        det = results[0].boxes.data.cpu().numpy()
         if len(det) and len(det[0]) == 7:
             for *xyxy, id, conf, cls in reversed(det):
                 c = int(cls)  # integer class

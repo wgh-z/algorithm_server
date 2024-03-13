@@ -46,7 +46,7 @@ class SmartBackend:
         self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
         self.video_reader_list = [None] * self.n
         self.tracker_thread_list = [None] * self.n
-        self.q_in_list = [Queue(30) for _ in range(self.n)]
+        self.q_in_list = [Queue(300) for _ in range(self.n)]
         # self.q_out_list = [Queue(30) for _ in range(n)]
         self.frame_list = [None] * self.n  # 用于存储每路视频的帧
 
@@ -57,6 +57,9 @@ class SmartBackend:
     def start(self):
         if not self.running:  # 防止重复启动
             self.running = True
+            # 更新结果线程
+            show_thread = threading.Thread(target=self.update_results, daemon=False)
+            show_thread.start()
 
             # 追踪检测线程
             for i, source in enumerate(self.source_list):
@@ -70,10 +73,6 @@ class SmartBackend:
                 )
                 self.tracker_thread_list[i] = tracker_thread
                 tracker_thread.start()
-
-            # 更新结果线程
-            show_thread = threading.Thread(target=self.update_results, daemon=False)
-            show_thread.start()
 
     def stop(self):
         self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
@@ -107,17 +106,18 @@ class SmartBackend:
 
     def update_results(self):
         avg_fps = 0
-        wait_time = 1 / (25*self.n)  # 降低cpu占用
+        wait_time = 1 / 30  # 降低cpu占用
         while self.running:
             start_time = time.time()
             # group = [None] * self.group_scale
             for i, q in enumerate(self.q_in_list):
                 if not q.empty():  # 异步获取结果，防止忙等待
                     self.frame_list[i] = q.get()
-                else:
-                    time.sleep(wait_time/2)
-                    if not q.empty():
-                        self.frame_list[i] = q.get()
+                # else:
+                #     time.sleep(wait_time/self.n)
+                #     print('等待结果')
+                #     if not q.empty():
+                #         self.frame_list[i] = q.get()
 
             if self.display_manager.intragroup_index == -1:  # 宫格显示
                     start = self.display_manager.intergroup_index * self.group_scale
@@ -136,7 +136,7 @@ class SmartBackend:
             end_time = time.time()
             if end_time - start_time < wait_time:  # 帧数稳定
                 time.sleep(wait_time - (end_time - start_time))
-                print('显示空等待')
+                # print('显示空等待')
             avg_fps = (avg_fps + (1 / (time.time() - start_time))) / 2
         print('collect_results结束')
 
@@ -179,16 +179,21 @@ class SmartBackend:
         wait_time = 1 / 25
         while self.running:
             t1 = time.time()
-            # print(f'第{file_index}路:{self.run}')
+            # print(f'第{index}路:{self.run}')
             frame = video_reader()
             if frame is None:
                 break
 
-            annotated_frame, show_id = tracker(frame, {})
             t2 = time.time()
-            if t2 - t1 < wait_time:  # 帧数稳定
-                time.sleep(wait_time - (t2 - t1))
-                print('检测空等待')
-            q.put(annotated_frame) if not q.full() else q.get()
+            annotated_frame, show_id = tracker(frame, {})
+            t3 = time.time()
+            # if t3 - t1 < wait_time:  # 帧数稳定
+            #     time.sleep(wait_time - (t2 - t1))
+            #     print('检测空等待')
+            # print(f'第{index}路检测时间:{t2-t1},{t3-t2}')  # 0.014,0.291
+            # print(f'第{index}路检测:{tracker.count}')  # 0.014,0.291
+            if q.full():
+                q.get()
+            q.put(annotated_frame)
         print(f"第{index}路已停止")
  

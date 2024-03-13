@@ -13,7 +13,7 @@ from views.model_management import model_blueprint
 from utils.backend import SmartBackend
 
 
-with open('cfg/server.yaml', 'r', encoding='utf-8') as f:
+with open('./cfg/server.yaml', 'r', encoding='utf-8') as f:
     cfg = yaml.load(f, Loader=yaml.FullLoader)
 
 predictor = SmartBackend(

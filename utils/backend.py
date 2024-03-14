@@ -2,10 +2,11 @@
 import cv2
 import time
 import threading
+import multiprocessing as mp
 import numpy as np
 # import torch
 from pathlib import Path
-from queue import Queue
+# from queue import Queue
 
 # from ultralytics import YOLO
 # from ultralytics.data.loaders import LoadStreams
@@ -14,6 +15,35 @@ from queue import Queue
 from utils.toolbox import SquareSplice
 from utils.video_io import VideoDisplayManage, ReadVideo
 from models.track import Track
+
+
+# 需要抽象为类，每路加载不同的配置文件
+def run_in_thread(weight, imgsz, vid_stride,
+                    index, q, source):
+    """
+    """
+    tracker = Track(weight, imgsz, vid_stride=vid_stride)
+    _, _ = tracker(np.zeros((1080, 1920, 3), dtype=np.uint8), {})  # warmup
+
+    wait_time = 1 / 25
+    video_reader = ReadVideo(source)
+    while True:
+        t1 = time.time()
+        # print(f'第{index}路:{self.run}')
+        frame = video_reader()
+
+        t2 = time.time()
+        annotated_frame, show_id = tracker(frame, {})
+        t3 = time.time()
+        # if t3 - t1 < wait_time:  # 帧数稳定
+        #     time.sleep(wait_time - (t2 - t1))
+        #     print('检测空等待')
+        print(f'第{index}路检测时间:{t2-t1},{t3-t2}')  # 0.014,0.291
+        # print(f'第{index}路检测:{tracker.count}')
+        if q.full():
+            q.get()
+        q.put(annotated_frame)
+    print(f"第{index}路已停止")
 
 
 class SmartBackend:
@@ -44,9 +74,9 @@ class SmartBackend:
 
         # 初始化共享变量
         self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
-        self.video_reader_list = [None] * self.n
+        # self.video_reader_list = [None] * self.n
         self.tracker_thread_list = [None] * self.n
-        self.q_in_list = [Queue(300) for _ in range(self.n)]
+        self.q_in_list = [mp.Queue(300) for _ in range(self.n)]
         # self.q_out_list = [Queue(30) for _ in range(n)]
         self.frame_list = [None] * self.n  # 用于存储每路视频的帧
 
@@ -63,12 +93,13 @@ class SmartBackend:
 
             # 追踪检测线程
             for i, source in enumerate(self.source_list):
-                self.video_reader_list[i] = ReadVideo(source)
+                # self.video_reader_list[i] = ReadVideo(source)
 
-                tracker_thread = threading.Thread(
-                    target=self.run_in_thread,
+                # tracker_thread = threading.Thread(
+                tracker_thread = mp.Process(
+                    target=run_in_thread,
                     args=(self.weight, self.imgsz, self.vid_stride, i,
-                          self.q_in_list[i], self.video_reader_list[i]),
+                          self.q_in_list[i], source),
                     daemon=False
                 )
                 self.tracker_thread_list[i] = tracker_thread
@@ -168,32 +199,5 @@ class SmartBackend:
     def read_frames(self, sources, q_out_list):
         pass
 
-    # 需要抽象为类，每路加载不同的配置文件
-    def run_in_thread(self, weight, imgsz, vid_stride,
-                      index, q, video_reader):
-        """
-        """
-        tracker = Track(weight, imgsz, vid_stride=vid_stride)
-        _, _ = tracker(self.im_show, {})  # warmup
 
-        wait_time = 1 / 25
-        while self.running:
-            t1 = time.time()
-            # print(f'第{index}路:{self.run}')
-            frame = video_reader()
-            if frame is None:
-                break
-
-            t2 = time.time()
-            annotated_frame, show_id = tracker(frame, {})
-            t3 = time.time()
-            # if t3 - t1 < wait_time:  # 帧数稳定
-            #     time.sleep(wait_time - (t2 - t1))
-            #     print('检测空等待')
-            # print(f'第{index}路检测时间:{t2-t1},{t3-t2}')  # 0.014,0.291
-            # print(f'第{index}路检测:{tracker.count}')  # 0.014,0.291
-            if q.full():
-                q.get()
-            q.put(annotated_frame)
-        print(f"第{index}路已停止")
  

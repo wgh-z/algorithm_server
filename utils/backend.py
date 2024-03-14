@@ -71,7 +71,8 @@ class SmartBackend:
                 target=self.read_frames,                    
                 args=(self.source_list, self.q_in_list),
                 daemon=False
-                ).start()
+                )
+            self.read_thread.start()
 
             # 检测线程
             self.pridector_thread = threading.Thread(
@@ -83,10 +84,12 @@ class SmartBackend:
                     self.q_out_list
                     ),
                 daemon=False
-            ).start()
+            )
+            self.pridector_thread.start()
 
             # 更新结果线程
-            self.show_thread = threading.Thread(target=self.update_results, daemon=False).start()
+            self.show_thread = threading.Thread(target=self.update_results, daemon=False)
+            self.show_thread.start()
 
     def stop(self):
         self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
@@ -159,16 +162,22 @@ class SmartBackend:
         print('collect_results结束')
 
     def read_frames(self, source_list: list[str], q_in_list: list[Queue]):
+        reader_list = []
         for i, source in enumerate(source_list):
             video_reader = ReadVideo(source)
-            while self.running:
+            reader_list.append(video_reader)
+        
+        while self.running:
+            for i, video_reader in enumerate(reader_list):
                 frame = video_reader()
                 if frame is None:
+                    self.running = False
                     break
-                # if q_in_list[i].full():
-                #     q_in_list[i].get()
+                if q_in_list[i].full():
+                    q_in_list[i].get()
+                    print(f"第{i}路视频帧队列已满")
                 q_in_list[i].put(frame)
-            # print(f"第{i}路已停止")
+        print(f"视频读取已停止")
 
     # 需要抽象为类，每路加载不同的配置文件
     def run_in_thread(self,
@@ -186,7 +195,8 @@ class SmartBackend:
                 imgsz=source_dict[source]['detect_size'],
                 classes=source_dict[source]['classes'],
                 tracker=source_dict[source]['tracker'],
-                vid_stride=source_dict[source]['video_stride']
+                vid_stride=source_dict[source]['video_stride'],
+                index=i
                 )
             _, _ = tracker(self.im_show, {})  # warmup
             traker_list.append(tracker)
@@ -198,8 +208,8 @@ class SmartBackend:
             for i, tracker in enumerate(traker_list):
                 frame = q_in_list[i].get()
                 annotated_frame, show_id = tracker(frame, {})
-                if q_out_list[i].full():
-                    q_out_list[i].get()
+                # if q_out_list[i].full():
+                #     q_out_list[i].get()
                 q_out_list[i].put(annotated_frame)
 
             t2 = time.time()

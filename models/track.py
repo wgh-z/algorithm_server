@@ -46,7 +46,7 @@ class Track:
         r_point = (int(w * r_rate[0]), int(h * r_rate[1])) if r_rate is not None else None
         # print('show_id==', show_id, l_point, r_point)
 
-        if self.count % self.vid_stride == 0:
+        if self.count == 0:
             # inference
             results = self.model.track(
                 frame,
@@ -59,10 +59,9 @@ class Track:
             )
             self.prior_result = results
             # self.count = 0
-            # print('results', self.count)
         else:
             results = self.prior_result
-        self.count += 1
+        self.count = (self.count + 1) % self.vid_stride
 
         # maintain show_id
         try:

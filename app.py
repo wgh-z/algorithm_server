@@ -13,13 +13,7 @@ from views.model_management import model_blueprint
 from utils.backend import SmartBackend
 
 
-with open('./cfg/server.yaml', 'r', encoding='utf-8') as f:
-    cfg = yaml.load(f, Loader=yaml.FullLoader)
-
-predictor = SmartBackend(
-    weight=cfg['weight'], source=cfg['sources'], imgsz=cfg['detect_size'],
-    group_scale=cfg['group_scale'], vid_stride=cfg['video_stride']
-    )
+predictor = SmartBackend()
 
 app = Flask(__name__)
 app.register_blueprint(interactive_blueprint(predictor))
@@ -59,8 +53,10 @@ def video_feed():
 
 
 def run_flask_app():
-    global cfg, app
-    app.run(host=cfg['ip'], port=cfg['port'], debug=False)
+    global app
+    with open('./cfg/server.yaml', 'r', encoding='utf-8') as f:
+        server_cfg = yaml.load(f, Loader=yaml.FullLoader)
+    app.run(host=server_cfg['ip'], port=server_cfg['port'], debug=False)
 
 
 if __name__ == '__main__':

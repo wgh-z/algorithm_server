@@ -1,0 +1,14 @@
+show:
+  group_scale: 4  # 每组几路视频
+  show_shape:
+    - 1920  # 显示宽度
+    - 1080  # 显示高度
+
+source:
+  weight: 'E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt'
+  task: 'detect'  # detect或track
+  detect_size: null  # 检测尺寸
+  classes: null  # 目标筛选，不写为不筛选
+  tracker: 'bytetrack.yaml'  # bytetrack或botsort
+  video_stride: 1  # 检测帧间隔
+  group_num: null  # 隶属于第几组，不写为任意分配

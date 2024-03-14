@@ -1,6 +1,8 @@
 # 工具箱
 import cv2
 import time
+import yaml
+import copy
 import numpy as np
 from utils.regional_judgment import point_in_rect
 
@@ -43,6 +45,46 @@ def interpolate_bbox(bbox1, bbox2, n=1):
 
     # 返回插值后的 bbox
     return bbox_n
+
+
+def create_model_config_flie(
+        config_dict: dict,
+        save_path: str = './cfg/track.yaml',
+        default_cfg_path = './cfg/default.yaml'):
+
+    if not isinstance(config_dict, dict):
+        return '参数必须为一个字典'
+    # else:
+    #     if 'source' not in config_dict.keys():
+    #         return '字典必须包含show键和source键'
+
+    with open(default_cfg_path, 'r', encoding='utf-8') as default:
+        default_cfg: dict = yaml.load(default, Loader=yaml.FullLoader)
+
+    # 值检查
+    # for k, v in config_dict['show'].items():
+    #     if v is None:
+    #         config_dict['show'][k] = default_cfg['show'][k]        
+
+    # 检查show键
+    for k, v in config_dict['show'].items():
+        if v is None:
+            config_dict['show'][k] = default_cfg['show'][k]
+    
+    # 检查source键
+    temp_dict = copy.deepcopy(config_dict)
+    for i, source in enumerate(config_dict['source'].keys()):
+        for k, v in config_dict['source'][source].items():
+            if v is None:
+                if k == 'group_num':
+                    temp_dict['source'][source]['group_num'] = i // 4  # 默认分组
+                else:
+                    temp_dict['source'][source][k] = default_cfg['source'][k]
+    config_dict = copy.deepcopy(temp_dict)
+
+    with open(save_path, 'w', encoding='utf-8') as f:
+        yaml.dump(config_dict, f, allow_unicode=True)
+    return '配置文件更新成功'
 
 
 class SquareSplice:

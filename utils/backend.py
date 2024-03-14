@@ -53,7 +53,7 @@ class SmartBackend:
         self.video_reader_list = [None] * self.n
         self.tracker_thread_list = [None] * self.n
         self.q_in_list = [Queue(30) for _ in range(self.n)]
-        # self.q_out_list = [Queue(30) for _ in range(n)]
+        self.q_out_list = [Queue(30) for _ in range(self.n)]
         self.frame_list = [None] * self.n  # 用于存储每路视频的帧
 
         # 工具类
@@ -66,23 +66,27 @@ class SmartBackend:
             self.parse_config()
             self.initialize()
 
+            # 读取视频线程
+            self.read_thread = threading.Thread(
+                target=self.read_frames,                    
+                args=(self.source_list, self.q_in_list),
+                daemon=False
+                ).start()
+
+            # 检测线程
+            self.pridector_thread = threading.Thread(
+                target=self.run_in_thread,
+                args=(
+                    self.source_list,
+                    self.source_dict,
+                    self.q_in_list,
+                    self.q_out_list
+                    ),
+                daemon=False
+            ).start()
+
             # 更新结果线程
-            show_thread = threading.Thread(target=self.update_results, daemon=False)
-            show_thread.start()
-
-            # 追踪检测线程
-            for i, source in enumerate(self.source_list):
-                self.video_reader_list[i] = ReadVideo(source)
-
-                tracker_thread = threading.Thread(
-                    target=self.run_in_thread,
-                    args=(self.source_dict[source],
-                          self.q_in_list[i],
-                          self.video_reader_list[i], i),
-                    daemon=False
-                )
-                self.tracker_thread_list[i] = tracker_thread
-                tracker_thread.start()
+            self.show_thread = threading.Thread(target=self.update_results, daemon=False).start()
 
     def stop(self):
         self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
@@ -92,8 +96,12 @@ class SmartBackend:
         print('模型已结束')
 
     def wait_thread(self):
-        for tracker_thread in self.tracker_thread_list:
-            tracker_thread.join()
+        if self.read_thread is not None:
+            self.read_thread.join()
+        if self.pridector_thread is not None:
+            self.pridector_thread.join()
+        if self.show_thread is not None:
+            self.show_thread.join()
 
     def clear_up(self):
         for video_reader in self.video_reader_list:
@@ -120,7 +128,7 @@ class SmartBackend:
         while self.running:
             start_time = time.time()
             # group = [None] * self.group_scale
-            for i, q in enumerate(self.q_in_list):
+            for i, q in enumerate(self.q_out_list):
                 # if not q.empty():  # 异步获取结果，防止忙等待
                     self.frame_list[i] = q.get()
                 # else:
@@ -150,41 +158,55 @@ class SmartBackend:
             avg_fps = (avg_fps + (1 / (time.time() - start_time))) / 2
         print('collect_results结束')
 
-    def read_frames(self, sources, q_out_list):
-        pass
+    def read_frames(self, source_list: list[str], q_in_list: list[Queue]):
+        for i, source in enumerate(source_list):
+            video_reader = ReadVideo(source)
+            while self.running:
+                frame = video_reader()
+                if frame is None:
+                    break
+                # if q_in_list[i].full():
+                #     q_in_list[i].get()
+                q_in_list[i].put(frame)
+            # print(f"第{i}路已停止")
 
     # 需要抽象为类，每路加载不同的配置文件
-    def run_in_thread(self, cfg_dict: dict, q: Queue, video_reader, index):
+    def run_in_thread(self,
+                      source_list: list[str],
+                      source_dict: dict,
+                      q_in_list: list[Queue],
+                      q_out_list: list[Queue]
+                      ):
         """
         """
-        tracker = Track(
-            weight=cfg_dict['weight'],
-            imgsz=cfg_dict['detect_size'],
-            classes=cfg_dict['classes'],
-            tracker=cfg_dict['tracker'],
-            vid_stride=cfg_dict['video_stride']
-            )
-        _, _ = tracker(self.im_show, {})  # warmup
+        traker_list = []
+        for i, source in enumerate(source_list):
+            tracker = Track(
+                weight=source_dict[source]['weight'],
+                imgsz=source_dict[source]['detect_size'],
+                classes=source_dict[source]['classes'],
+                tracker=source_dict[source]['tracker'],
+                vid_stride=source_dict[source]['video_stride']
+                )
+            _, _ = tracker(self.im_show, {})  # warmup
+            traker_list.append(tracker)
 
         wait_time = 1 / 25
         while self.running:
             t1 = time.time()
             # print(f'第{index}路:{self.run}')
-            frame = video_reader()
-            if frame is None:
-                break
+            for i, tracker in enumerate(traker_list):
+                frame = q_in_list[i].get()
+                annotated_frame, show_id = tracker(frame, {})
+                if q_out_list[i].full():
+                    q_out_list[i].get()
+                q_out_list[i].put(annotated_frame)
 
             t2 = time.time()
-            annotated_frame, show_id = tracker(frame, {})
-            t3 = time.time()
             # if t3 - t1 < wait_time:  # 帧数稳定
             #     time.sleep(wait_time - (t2 - t1))
             #     print('检测空等待')
-            # if index == 0:
-            #     print(f'第{index}路检测时间:{t2-t1},{t3-t2}')  # 0.014,0.4/0.03
+            print(f'检测时间:{t2-t1}')  # 0.014,0.4/0.03
             # print(f'第{index}路检测:{tracker.count}')  # 0.014,0.291
-            if q.full():
-                q.get()
-            q.put(annotated_frame)
-        print(f"第{index}路已停止")
+        # print(f"第{index}路已停止")
  

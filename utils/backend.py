@@ -27,15 +27,21 @@ class SmartBackend:
             cfg = yaml.load(f, Loader=yaml.FullLoader)
 
         # show键
-        self.group_scale = cfg['show']['group_scale']
-        self.show_w, self.show_h = cfg['show']['show_shape']
+        self.group_scale = cfg['show']['group_scale']  # 每组显示的视频数量
+        self.show_w, self.show_h = cfg['show']['show_shape']  # 显示窗口大小
     
         # source键
-        self.n = len(cfg['source'])
+        self.n = len(cfg['source'])  # 视频总数量
         self.source_dict = cfg['source']
-        # self.souce_list = []
-        # for i, source in enumerate(self.source_dict.keys()):
-        #     self.souce_list[i] = source
+
+        # 按组排序
+        group_dict = {i: [] for i in range(self.group_scale)}
+        for source in self.source_dict.keys():
+            group_dict[self.source_dict[source]['group_num']].append(source)
+
+        self.source_list = []
+        for group_num in group_dict.keys():
+            self.source_list += group_dict[group_num]
 
     def initialize(self):
         # 参数计算
@@ -65,7 +71,7 @@ class SmartBackend:
             show_thread.start()
 
             # 追踪检测线程
-            for i, source in enumerate(self.source_dict.keys()):
+            for i, source in enumerate(self.source_list):
                 self.video_reader_list[i] = ReadVideo(source)
 
                 tracker_thread = threading.Thread(

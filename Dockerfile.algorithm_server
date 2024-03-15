@@ -7,9 +7,20 @@ FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
 RUN pip install --no-cache nvidia-tensorrt --index-url https://pypi.ngc.nvidia.com
 
 # Downloads to user config dir
-ADD https://github.com/ultralytics/assets/releases/download/v0.0.0/Arial.ttf \
-    https://github.com/ultralytics/assets/releases/download/v0.0.0/Arial.Unicode.ttf \
+ADD font/Arial.ttf \
+    font/Arial.Unicode.ttf \
     /root/.config/Ultralytics/
+
+RUN /bin/bash -c 'conda init bash'
+
+# 换源并更新pip
+RUN pip config set global.index-url https://pypi.mirrors.ustc.edu.cn/simple/
+RUN pip install --upgrade pip
+
+# 将原镜像地址替换为阿里云镜像地址
+RUN sed -i 's/archive.ubuntu.com/mirrors.cloud.tencent.com/g' /etc/apt/sources.list
+RUN sed -i 's/security.ubuntu.com/mirrors.cloud.tencent.com/g' /etc/apt/sources.list
+
 
 # Install linux packages
 # g++ required to build 'tflite_support' and 'lap' packages, libusb-1.0-0 required for 'tflite_support' package
@@ -25,23 +36,25 @@ WORKDIR /usr/src/ultralytics
 
 # Copy contents
 # COPY . /usr/src/ultralytics  # git permission issues inside container
-RUN git clone https://github.com/ultralytics/ultralytics -b main /usr/src/ultralytics
-ADD https://github.com/ultralytics/assets/releases/download/v8.1.0/yolov8n.pt /usr/src/ultralytics/
+ADD . /usr/src/ultralytics/
 
 # Install pip packages
 RUN python3 -m pip install --upgrade pip wheel
-RUN pip install --no-cache -e ".[export]" albumentations comet pycocotools
+RUN pip install --no-cache -r requirements.txt
+# RUN pip install --no-cache -e ".[export]" albumentations comet pycocotools
+RUN pip install --no-cache albumentations comet pycocotools
+
 
 # Run exports to AutoInstall packages
 # Edge TPU export fails the first time so is run twice here
-RUN yolo export model=tmp/yolov8n.pt format=edgetpu imgsz=32 || yolo export model=tmp/yolov8n.pt format=edgetpu imgsz=32
-RUN yolo export model=tmp/yolov8n.pt format=ncnn imgsz=32
+# RUN yolo export model=tmp/yolov8n.pt format=edgetpu imgsz=32 || yolo export model=tmp/yolov8n.pt format=edgetpu imgsz=32
+# RUN yolo export model=tmp/yolov8n.pt format=ncnn imgsz=32
 # Requires <= Python 3.10, bug with paddlepaddle==2.5.0 https://github.com/PaddlePaddle/X2Paddle/issues/991
-RUN pip install --no-cache paddlepaddle>=2.6.0 x2paddle
+# RUN pip install --no-cache paddlepaddle>=2.6.0 x2paddle
 # Fix error: `np.bool` was a deprecated alias for the builtin `bool` segmentation error in Tests
 RUN pip install --no-cache numpy==1.23.5
 # Remove exported models
-RUN rm -rf tmp
+# RUN rm -rf tmp
 
 # Set environment variables
 ENV OMP_NUM_THREADS=1
@@ -83,3 +96,6 @@ ENV MKL_THREADING_LAYER=GNU
 
 # GCP VM from Image
 # docker.io/ultralytics/ultralytics:latest
+
+# run
+# docker run -it --rm -p 4006:4006 -p 8554:8554 --gpus all -name server algorighm_server:latest

@@ -5,6 +5,9 @@ import yaml
 import copy
 import numpy as np
 from utils.regional_judgment import point_in_rect
+import pprint
+import json
+from operator import itemgetter
 
 
 def fps(func):
@@ -70,7 +73,7 @@ def create_model_config_flie(
     for k, v in config_dict['show'].items():
         if v is None:
             config_dict['show'][k] = default_cfg['show'][k]
-    
+
     # 检查source键
     temp_dict = copy.deepcopy(config_dict)
     for i, source in enumerate(config_dict['source'].keys()):
@@ -84,6 +87,51 @@ def create_model_config_flie(
 
     with open(save_path, 'w', encoding='utf-8') as f:
         yaml.dump(config_dict, f, allow_unicode=True)
+    return '配置文件更新成功'
+
+
+def create_model_config_flie2(
+        config_dict: dict,
+        save_path: str = './cfg/track.yaml',
+        default_cfg_path = './cfg/default.yaml'):
+
+    if not isinstance(config_dict, dict):
+        return '参数必须为一个字典'
+    else:
+        if 'source' not in config_dict.keys():
+            return '参数必须包含source键，且属性不能为空'
+
+    with open(default_cfg_path, 'r', encoding='utf-8') as default:
+        default_cfg: dict = yaml.load(default, Loader=yaml.FullLoader)
+
+    if 'show' not in config_dict.keys():  # 如果没有show键，则使用默认配置
+        config_dict['show'] = default_cfg['show']
+    else:  # 如果有show键，则检查属性是否为空
+        for k, v in config_dict['show'].items():
+            if v is None:  # 如果属性为空，则使用默认配置
+                config_dict['show'][k] = default_cfg['show'][k]
+    
+    for source, v in config_dict['source'].items():
+        if v is None:  # 如果属性为空，则使用默认配置
+            config_dict['source'][source] = default_cfg['source']
+
+    config_str = json.dumps(config_dict)
+    new_dict = json.loads(config_str)
+
+    temp_dict = copy.deepcopy(config_dict)
+    for i, source in enumerate(config_dict['source'].keys()):
+        for k, v in config_dict['source'][source].items():
+            if v is None:
+                if k == 'group_num':
+                    temp_dict['source'][source]['group_num'] = i // 4  # 默认分组
+                else:
+                    temp_dict['source'][source][k] = default_cfg['source'][k]
+    config_dict = copy.deepcopy(temp_dict)
+
+    with open(save_path, 'w', encoding='utf-8') as f:
+        yaml.dump(new_dict, f, allow_unicode=True)
+    with open('./cfg/test.json', 'w', encoding='utf-8') as f:
+        json.dump(new_dict, f, ensure_ascii=False, indent=4)
     return '配置文件更新成功'
 
 

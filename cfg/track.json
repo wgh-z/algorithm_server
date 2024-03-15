@@ -1,18 +1,18 @@
 [
     {
         "name": "YOLOv8 Polygon Region",
-        "polygon": [[50, 80], [250, 20], [450, 80], [400, 350], [100, 350]],  # Polygon points
+        "polygon": [[50, 80], [250, 20], [450, 80], [400, 350], [100, 350]],
         "counts": 0,
         "dragging": "False",
-        "region_color": [255, 42, 4],  # BGR Value
-        "text_color": [255, 255, 255],  # Region Text Color
+        "region_color": [255, 42, 4],
+        "text_color": [255, 255, 255]
     },
     {
         "name": "YOLOv8 Rectangle Region",
-        "polygon": [[200, 250], [440, 250], [440, 550], [200, 550]],  # Polygon points
+        "polygon": [[200, 250], [440, 250], [440, 550], [200, 550]],
         "counts": 0,
-        "dragging": False,
-        "region_color": [37, 255, 225],  # BGR Value
-        "text_color": [0, 0, 0],  # Region Text Color
-    },
+        "dragging": false,
+        "region_color": [37, 255, 225],
+        "text_color": [0, 0, 0]
+    }
 ]

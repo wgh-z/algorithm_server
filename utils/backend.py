@@ -58,7 +58,7 @@ class SmartBackend:
 
         # 工具类
         self.splicer = SquareSplice(self.scale, show_shape=(self.show_w, self.show_h))
-        self.display_manager = VideoDisplayManage(self.groups_num, self.scale)
+        self.display_manager = VideoDisplayManage(self.group_scale, self.groups_num, self.scale)
 
     def start(self):
         if not self.running:  # 防止重复启动

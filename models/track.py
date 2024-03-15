@@ -40,6 +40,7 @@ class Track:
         self.count = 0
         self.prior_result = None
         self.index = index
+        self.detect = False
 
     def __call__(self, frame, show_id: dict, l_rate=None, r_rate=None):
         # click point
@@ -48,22 +49,31 @@ class Track:
         r_point = (int(w * r_rate[0]), int(h * r_rate[1])) if r_rate is not None else None
         # print('show_id==', show_id, l_point, r_point)
 
-        if self.count == self.index:
+        if self.index == 0:
+            if self.count == 0:
+                self.detect = True
+            else:
+                self.detect = False
+            self.count = (self.count + 1) % self.vid_stride
+        elif self.index > 0:
+            self.detect = False
+            self.index -= 1
+        # print('count', self.count, self.index)
+            
+        if self.detect:
             # inference
             results = self.model.track(
-                frame,
-                classes=self.classes,
-                tracker=self.tracker,
-                imgsz=self.imgsz,
-                half=True,
-                verbose=self.verbose,
-                persist=True
-            )
+                    frame,
+                    classes=self.classes,
+                    tracker=self.tracker,
+                    imgsz=self.imgsz,
+                    half=True,
+                    verbose=self.verbose,
+                    persist=True
+                )
             self.prior_result = results
-            # self.count = 0
         else:
             results = self.prior_result
-        self.count = (self.count + 1) % self.vid_stride
 
         if results is None:
             return frame, show_id

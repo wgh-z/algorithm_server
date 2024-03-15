@@ -7,7 +7,8 @@ class VideoDisplayManage:
     """
     这是一个视频显示管理类，用于管理视频显示
     """
-    def __init__(self, groups_num, scale) -> None:
+    def __init__(self, group_scale, groups_num, scale) -> None:
+        self.group_scale = group_scale
         self.groups_num = groups_num
         self.scale = scale
 
@@ -18,6 +19,8 @@ class VideoDisplayManage:
         assert direction in [-1, 1], 'direction must be -1 or 1'
         if self.intragroup_index == -1:  # 不响应 组内显示
             self.intergroup_index = (self.intergroup_index + direction) % self.groups_num
+        else:
+            self.intragroup_index = (self.intragroup_index + direction) % self.group_scale
         return f'当前显示第{self.intergroup_index}组视频'
     
     # 选择组内视频

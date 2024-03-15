@@ -30,15 +30,20 @@ if __name__ == '__main__':
     sources = {}
     for i, stream in enumerate(streams):
         sources[stream] = {
-            'weight': 'E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt',
+            'weight': 'yolov8s.pt',
             'task': 'track',
             'detect_size': [384, 640],
             'classes': [0, 2],
             'tracker': 'bytetrack.yaml',
             'group_num': i // 4,
-            'video_stride': 1
+            'video_stride': 8
         }
-    # print(cfg_dict)
+    print(cfg_dict)
     cfg_dict['source'] = sources
-    result = create_model_config_flie(cfg_dict)
+
+    # cfg_dict = {'source':{}}
+    # for i, stream in enumerate(streams):
+    #     cfg_dict['source'][stream] = None
+    # print(cfg_dict)
+    result = create_model_config_flie(cfg_dict, save_path='./cfg/track.yaml')
     print(result)

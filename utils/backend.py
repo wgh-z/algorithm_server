@@ -58,7 +58,7 @@ class SmartBackend:
 
         # 工具类
         self.splicer = SquareSplice(self.scale, show_shape=(self.show_w, self.show_h))
-        self.display_manager = VideoDisplayManage(self.groups_num, self.scale)
+        self.display_manager = VideoDisplayManage(self.group_scale, self.groups_num, self.scale)
 
     def start(self):
         if not self.running:  # 防止重复启动
@@ -175,7 +175,7 @@ class SmartBackend:
                     break
                 if q_in_list[i].full():
                     q_in_list[i].get()
-                    print(f"第{i}路视频帧队列已满")
+                    # print(f"第{i}路视频帧队列已满")
                 q_in_list[i].put(frame)
         print(f"视频读取已停止")
 
@@ -205,6 +205,7 @@ class SmartBackend:
         while self.running:
             t1 = time.time()
             # print(f'第{index}路:{self.run}')
+            detc = []
             for i, tracker in enumerate(traker_list):
                 frame = q_in_list[i].get()
                 annotated_frame, show_id = tracker(frame, {})
@@ -212,11 +213,15 @@ class SmartBackend:
                 #     q_out_list[i].get()
                 q_out_list[i].put(annotated_frame)
 
+                if tracker.detect == True:
+                    detc.append(i)
+            print(f'检测路数:{detc}')
+
             t2 = time.time()
             # if t3 - t1 < wait_time:  # 帧数稳定
             #     time.sleep(wait_time - (t2 - t1))
             #     print('检测空等待')
-            print(f'检测时间:{t2-t1}')  # 0.014,0.4/0.03
+            # print(f'检测时间:{t2-t1}')  # 0.014,0.4/0.03
             # print(f'第{index}路检测:{tracker.count}')  # 0.014,0.291
         # print(f"第{index}路已停止")
  

@@ -7,7 +7,7 @@ show:
 source:
   weight: 'E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt'
   task: 'detect'  # detect或track
-  detect_size: null  # 检测尺寸
+  detect_size: 640  # 检测尺寸
   classes: null  # 目标筛选，不写为不筛选
   tracker: 'bytetrack.yaml'  # bytetrack或botsort
   video_stride: 1  # 检测帧间隔

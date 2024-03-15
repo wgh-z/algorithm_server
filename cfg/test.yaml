@@ -8,159 +8,191 @@ source:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 0
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream1:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 0
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream10:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 2
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream11:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 2
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream12:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 3
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream13:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 3
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream14:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 3
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream15:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 3
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream2:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 0
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream3:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 0
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream4:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 1
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream5:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 1
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream6:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 1
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream7:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 1
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream8:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 2
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt
   rtsp://192.168.31.181:8554/stream9:
     classes:
     - 0
     - 2
-    detect_size: 640
+    detect_size:
+    - 384
+    - 640
     group_num: 2
     task: track
     tracker: bytetrack.yaml
-    video_stride: 5
-    weight: E:/Projects/weight/yolo/v8/detect/coco/yolov8m.pt
+    video_stride: 1
+    weight: yolov8m.pt

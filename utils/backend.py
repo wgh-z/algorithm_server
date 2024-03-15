@@ -162,13 +162,13 @@ class SmartBackend:
         print('collect_results结束')
 
     def read_frames(self, source_list: list[str], q_in_list: list[Queue]):
-        reader_list = []
+        # reader_list = []
         for i, source in enumerate(source_list):
             video_reader = ReadVideo(source)
-            reader_list.append(video_reader)
+            self.video_reader_list[i]=video_reader
         
         while self.running:
-            for i, video_reader in enumerate(reader_list):
+            for i, video_reader in enumerate(self.video_reader_list):
                 frame = video_reader()
                 if frame is None:
                     self.running = False

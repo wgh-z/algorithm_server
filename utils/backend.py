@@ -119,12 +119,12 @@ class SmartBackend:
 
     def update_results(self):
         avg_fps = 0
-        wait_time = 1 / 30  # 降低cpu占用
+        target_fps = 25
         while self.running:
             start_time = time.time()
             # group = [None] * self.group_scale
             for i, q in enumerate(self.q_in_list):
-                # if not q.empty():  # 异步获取结果，防止忙等待
+                if not q.empty():  # 异步获取结果，防止忙等待
                     self.frame_list[i] = q.get()
                 # else:
                 #     time.sleep(wait_time/self.n)
@@ -147,9 +147,10 @@ class SmartBackend:
                                        (self.show_w-100, 40),
                                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)  # 显示组数和路数
 
-            end_time = time.time()
-            if end_time - start_time < wait_time:  # 帧数稳定
-                time.sleep(wait_time - (end_time - start_time))
+            # end_time = time.time()
+            if avg_fps > target_fps:  # 帧数稳定
+                # print('显示空等待')
+                time.sleep(1/target_fps - 1/avg_fps)
                 # print('显示空等待')
             avg_fps = (avg_fps + (1 / (time.time() - start_time))) / 2
         print('collect_results结束')

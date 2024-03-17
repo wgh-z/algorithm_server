@@ -91,34 +91,36 @@ class Track:
         # det = self.interpolator(det)
 
         # 自定义绘制
-        annotated_frame = draw_box(frame, det, results[0].names,
-                                   example=str(results[0].names))
+        # annotated_frame = draw_box(frame, det, results[0].names,
+        #                            example=str(results[0].names))
+        annotated_frame = frame.copy()
+        annotator = Annotator(annotated_frame, line_width=4, example=str(results[0].names))
 
-        # if len(det) and len(det[0]) == 7:
-        #     for *xyxy, id, conf, cls in reversed(det):
-        #         c = int(cls)  # integer class
-        #         id = int(id)  # integer id
+        if len(det) and len(det[0]) == 7:
+            for *xyxy, id, conf, cls in reversed(det):
+                c = int(cls)  # integer class
+                id = int(id)  # integer id
 
-        #         if l_point is not None and id not in show_id:
-        #             if point_in_rect(l_point, xyxy):
-        #                 # show_id.append(id)
-        #                 show_id = self.timer.add_delay(show_id, id)
-        #                 l_point = None
+                if l_point is not None and id not in show_id:
+                    if point_in_rect(l_point, xyxy):
+                        # show_id.append(id)
+                        show_id = self.timer.add_delay(show_id, id)
+                        l_point = None
 
-        #         if r_point is not None:
-        #             if point_in_rect(r_point, xyxy):
-        #                 try:
-        #                     # show_id.remove(id)
-        #                     del show_id[id]
-        #                 except:
-        #                     pass
-        #                 r_point = None
+                if r_point is not None:
+                    if point_in_rect(r_point, xyxy):
+                        try:
+                            # show_id.remove(id)
+                            del show_id[id]
+                        except:
+                            pass
+                        r_point = None
 
-        #         # 显示指定id的目标
-        #         if id in show_id.keys() or show_id == {}:
-        #             label = f"{id} {results[0].names[c]} {conf:.2f}"
-        #             # print('xyxy', det, xyxy)
-        #             annotator.box_label(xyxy, label, color=colors(c, True))
+                # 显示指定id的目标
+                if id in show_id.keys() or show_id == {}:
+                    label = f"{id} {results[0].names[c]} {conf:.2f}"
+                    # print('xyxy', det, xyxy)
+                    annotator.box_label(xyxy, label, color=colors(c, True))
 
         return annotated_frame, show_id
 

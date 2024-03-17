@@ -42,14 +42,18 @@ class SmartBackend:
 
         # 按组排序
         group_dict = {i: [] for i in range(self.groups_num)}
-        self.group_len_dict = {i: None for i in range(self.groups_num)}
         for source in self.source_dict.keys():
             group_dict[self.source_dict[source]['group_num']].append(source)
 
         self.source_list = []
+        # self.group_index_dict = {i: None for i in range(self.n)}
+        index = 0
         for i in group_dict.keys():
             self.source_list += group_dict[i]
-            self.group_len_dict[i] = len(group_dict[i])
+            # self.group_index_dict[i] = [i+index for i in range(len(group_dict[i]))]
+            # index += len(group_dict[i])
+
+            # self.group_index_dict[i] = len(group_dict[i])
 
         # 初始化共享变量
         self.im_show = create_void_img((self.show_w, self.show_h), '正在加载')
@@ -60,6 +64,8 @@ class SmartBackend:
         self.q_in_list = [Queue(30) for _ in range(self.n)]
         # self.q_out_list = [Queue(30) for _ in range(n)]
         self.frame_list = [None] * self.n  # 用于存储每路视频的帧
+        self.l_rate = None
+        self.r_rate = None
 
         # 工具类
         self.splicer = SquareSplice(self.scale, show_shape=(self.show_w, self.show_h))
@@ -120,6 +126,25 @@ class SmartBackend:
 
     def get_results(self):
         return self.im_show
+    
+    def click(self, l_rate):
+        if self.display_manager.intragroup_index != -1:  # 单路显示
+            self.l_rate = l_rate
+            print('左键点击')
+            result = '单击选中'
+        else:
+            result = '尚未进入单路显示模式'
+        return result
+
+    def dclick(self, r_rate):
+        if self.display_manager.intragroup_index == -1:  # 宫格显示
+            result = self.display_manager.select_intragroup(r_rate)
+        else:
+            self.r_rate = r_rate
+            print('右键点击')
+            result = '双击取消选中'
+        return result
+            
 
     def update_results(self):
         avg_fps = 0
@@ -128,7 +153,7 @@ class SmartBackend:
             start_time = time.time()
             # group = [None] * self.group_scale
             for i, q in enumerate(self.q_in_list):
-                if not q.empty():  # 异步获取结果，防止忙等待
+                # if not q.empty():  # 异步获取结果，防止忙等待
                     self.frame_list[i] = q.get()
                 # else:
                 #     time.sleep(wait_time/self.n)
@@ -179,6 +204,10 @@ class SmartBackend:
             )
         _, _ = tracker(self.im_show, {})  # warmup
 
+        show_id = dict()
+        l_count = 5  # 点击位置保留帧数
+        r_count = 5
+
         wait_time = 1 / 25
         while self.running:
             t1 = time.time()
@@ -186,10 +215,39 @@ class SmartBackend:
             frame, success = video_reader()
             if success:
                 t2 = time.time()
-                annotated_frame, show_id = tracker(frame, {})
+                annotated_frame, show_id = tracker(frame, show_id, self.l_rate, self.r_rate)
                 t3 = time.time()
             else:
                 annotated_frame = frame
+
+            # new_frame = annotated_frame.copy()  # 需要和路数绑定
+            new_frame = annotated_frame
+
+            if index == self.display_manager.intragroup_index:
+                # print(f'{index}===显示==={self.display_manager.intragroup_index}')
+                # point delay 10 frames
+                if self.l_rate is not None:
+                    # print(f'{index}左键显示')
+                    if l_count > 0:
+                        # print(f'{index}左键显示2')
+                        l_count -= 1
+                        new_frame = cv2.circle(new_frame, (int(frame.shape[1] * self.l_rate[0]),
+                                                    int(frame.shape[0] * self.l_rate[1])),
+                                                    10, (0, 255, 0), -1)
+                    else:
+                        self.l_rate = None
+                        l_count = 5
+                if self.r_rate is not None:
+                    # print(f'{index}右键显示')
+                    if r_count > 0:
+                        r_count -= 1
+                        new_frame = cv2.circle(new_frame, (int(frame.shape[1] * self.r_rate[0]),
+                                                    int(frame.shape[0] * self.r_rate[1])),
+                                                    10, (0, 0, 255), -1)
+                    else:
+                        self.r_rate = None
+                        r_count = 5
+
             # if t3 - t1 < wait_time:  # 帧数稳定
             #     time.sleep(wait_time - (t2 - t1))
             #     print('检测空等待')
@@ -198,6 +256,5 @@ class SmartBackend:
             # print(f'第{index}路检测:{tracker.count}')  # 0.014,0.291
             if q.full():
                 q.get()
-            q.put(annotated_frame)
+            q.put(new_frame)
         print(f"第{index}路已停止")
- 

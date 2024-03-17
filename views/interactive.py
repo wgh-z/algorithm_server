@@ -15,7 +15,7 @@ def interactive_blueprint(predictor):
         y = float(request.args["yrate"])
         d_click_rate = (x, y)
         print('doubleleft==', d_click_rate)
-        result = predictor.display_manager.select_intragroup(d_click_rate)
+        result = predictor.dclick(d_click_rate)
         return jsonify({'code': 200, 'msg': result})
 
     # 双击左键进入组内显示
@@ -25,7 +25,7 @@ def interactive_blueprint(predictor):
         y = float(request.json['y'])
         d_click_rate = (x, y)
         print('doubleleft==', d_click_rate)
-        result = predictor.display_manager.select_intragroup(d_click_rate)
+        result = predictor.dclick(d_click_rate)
         return jsonify({'code': 200, 'msg': result})
 
     # q键退出组内显示
@@ -66,7 +66,8 @@ def interactive_blueprint(predictor):
         y = float(request.args["yrate"])
         l_rate = (x, y)
         print('left==', l_rate)
-        return jsonify({'code': 200, 'msg': 'success'})
+        result = predictor.click(l_rate)
+        return jsonify({'code': 200, 'msg': result})
 
     # 单击左键再按e添加检测区域点
     @interactive_operation.route('/click', methods=['POST'])
@@ -74,6 +75,8 @@ def interactive_blueprint(predictor):
         x = float(request.json['x'])
         y = float(request.json['y'])
         l_rate = (x, y)
-        return jsonify({'code': 200, 'msg': 'success'})
+        print('left==', l_rate)
+        result = predictor.click(l_rate)
+        return jsonify({'code': 200, 'msg': result})
 
     return interactive_operation

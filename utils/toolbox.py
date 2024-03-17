@@ -277,6 +277,7 @@ class ClickFilterDet:
         self.timer = Timer(30)
 
     def __call__(self, det, l_point=None, r_point=None):
+        in_show = []
         for i, *xyxy in enumerate(reversed(det[:, :4])):
             if point_in_rect(l_point, xyxy):
                 # show_id.append(id)
@@ -290,5 +291,5 @@ class ClickFilterDet:
                 except:
                     pass
                 r_point = None
-
+        new_det = np.take(det, in_show, axis=1)
         return l_point, r_point

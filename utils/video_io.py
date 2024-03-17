@@ -1,6 +1,8 @@
 # 视频处理相关
 import cv2
 import time
+import numpy as np
+from utils.toolbox import create_void_img
 
 
 class VideoDisplayManage:
@@ -51,21 +53,35 @@ class ReadVideo:
     def __init__(self, source, timeout: int = 2) -> None:
         self.source = source
         self.cap = cv2.VideoCapture(self.source)
+        if self.cap.isOpened():
+            w, h = int(self.cap.get(3)), int(self.cap.get(4))
+        else:
+            print(f'视频{self.source}打开失败')
+            w, h = 1920, 1080
+        self.void_img = create_void_img((w, h), '无信号')
         self.timeout = timeout
+    
+    # def __call__(self):
+    #     success, frame = self.cap.read()
+    #     if not success:
+    #         start_time = time.time()  # 记录开始时间
+    #         while not success:
+    #             self.cap.release()
+    #             self.cap = cv2.VideoCapture(self.source)
+    #             success, frame = self.cap.read()
+    #             if time.time() - start_time > self.timeout:  # 2s超时
+    #                 print(f'视频{self.source}读取超时')
+    #                 self.release()
+    #                 return None
+    #     return frame
     
     def __call__(self):
         success, frame = self.cap.read()
         if not success:
-            start_time = time.time()  # 记录开始时间
-            while not success:
-                self.cap.release()
-                self.cap = cv2.VideoCapture(self.source)
-                success, frame = self.cap.read()
-                if time.time() - start_time > self.timeout:  # 2s超时
-                    print(f'视频{self.source}读取超时')
-                    self.release()
-                    return None
-        return frame
+            self.cap.release()
+            self.cap = cv2.VideoCapture(self.source)
+            return self.void_img, success
+        return frame, success
 
     def release(self):
         self.cap.release()

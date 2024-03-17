@@ -11,7 +11,7 @@ from queue import Queue
 # from ultralytics.data.loaders import LoadStreams
 # from ultralytics.data.augment import LetterBox
 
-from utils.toolbox import SquareSplice
+from utils.toolbox import SquareSplice, create_void_img
 from utils.video_io import VideoDisplayManage, ReadVideo
 from models.track import Track
 
@@ -49,7 +49,8 @@ class SmartBackend:
         self.groups_num = int(np.ceil(self.n / self.group_scale))  # 组数
 
         # 初始化共享变量
-        self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
+        self.im_show = create_void_img((self.show_w, self.show_h), '正在加载')
+        # self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
         self.video_reader_list = [None] * self.n
         self.tracker_thread_list = [None] * self.n
         self.q_in_list = [Queue(30) for _ in range(self.n)]
@@ -85,7 +86,9 @@ class SmartBackend:
                 tracker_thread.start()
 
     def stop(self):
-        self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
+        # self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
+        self.im_show = create_void_img((self.show_w, self.show_h), '正在加载')
+
         self.running = False
         self.wait_thread()
         self.clear_up()
@@ -131,11 +134,12 @@ class SmartBackend:
 
             if self.display_manager.intragroup_index == -1:  # 宫格显示
                     start = self.display_manager.intergroup_index * self.group_scale
-                    self.im_show = self.splicer(self.frame_list[start:start+self.group_scale])
+                    im_show = self.splicer(self.frame_list[start:start+self.group_scale])
                 # group = [None] * self.group_scale
             else:  # 单路显示
-                self.im_show = self.frame_list[self.display_manager.intragroup_index]
+                im_show = self.frame_list[self.display_manager.intragroup_index]
 
+            self.im_show = im_show.copy()
             self.im_show = cv2.putText(self.im_show, f"FPS={avg_fps:.2f}", (0, 40),
                                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)  # 显示fps
 
@@ -158,7 +162,7 @@ class SmartBackend:
         """
         """
         tracker = Track(
-            weight=cfg_dict['weight'],
+            weight=f"./weights/{cfg_dict['weight']}",
             imgsz=cfg_dict['detect_size'],
             classes=cfg_dict['classes'],
             tracker=cfg_dict['tracker'],
@@ -170,13 +174,13 @@ class SmartBackend:
         while self.running:
             t1 = time.time()
             # print(f'第{index}路:{self.run}')
-            frame = video_reader()
-            if frame is None:
-                break
-
-            t2 = time.time()
-            annotated_frame, show_id = tracker(frame, {})
-            t3 = time.time()
+            frame, success = video_reader()
+            if success:
+                t2 = time.time()
+                annotated_frame, show_id = tracker(frame, {})
+                t3 = time.time()
+            else:
+                annotated_frame = frame
             # if t3 - t1 < wait_time:  # 帧数稳定
             #     time.sleep(wait_time - (t2 - t1))
             #     print('检测空等待')

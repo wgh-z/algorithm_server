@@ -28,7 +28,8 @@ class VideoDisplayManage:
     # 选择组内视频
     def select_intragroup(self, d_click_rate: tuple):
         x, y = d_click_rate
-        self.intragroup_index = int(x//(1/self.scale) + (y//(1/self.scale))*self.scale)
+        if self.intragroup_index == -1:
+            self.intragroup_index = int(x//(1/self.scale) + (y//(1/self.scale))*self.scale)
         return f'当前显示第{self.intergroup_index}组，第{self.intragroup_index}路视频'
 
     def exit_intragroup(self):

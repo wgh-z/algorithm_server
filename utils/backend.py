@@ -35,23 +35,25 @@ class SmartBackend:
         self.n = len(cfg['source'])  # 视频总数量
         self.source_dict = cfg['source']
 
-        # 按组排序
-        group_dict = {i: [] for i in range(self.group_scale)}
-        for source in self.source_dict.keys():
-            group_dict[self.source_dict[source]['group_num']].append(source)
-
-        self.source_list = []
-        for group_num in group_dict.keys():
-            self.source_list += group_dict[group_num]
-
     def initialize(self):
         # 参数计算
         self.scale = int(np.ceil(np.sqrt(self.group_scale)))  # 横纵方向的视频数量
         self.groups_num = int(np.ceil(self.n / self.group_scale))  # 组数
 
+        # 按组排序
+        group_dict = {i: [] for i in range(self.groups_num)}
+        self.group_len_dict = {i: None for i in range(self.groups_num)}
+        for source in self.source_dict.keys():
+            group_dict[self.source_dict[source]['group_num']].append(source)
+
+        self.source_list = []
+        for i in group_dict.keys():
+            self.source_list += group_dict[i]
+            self.group_len_dict[i] = len(group_dict[i])
+
         # 初始化共享变量
         self.im_show = create_void_img((self.show_w, self.show_h), '正在加载')
-        no_im = create_void_img((self.show_w, self.show_h), '未添加视频')
+        self.no_im = create_void_img((self.show_w, self.show_h), '未添加视频')
         # self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
         self.video_reader_list = [None] * self.n
         self.tracker_thread_list = [None] * self.n
@@ -136,7 +138,10 @@ class SmartBackend:
 
             if self.display_manager.intragroup_index == -1:  # 宫格显示
                     start = self.display_manager.intergroup_index * self.group_scale
-                    im_show = self.splicer(self.frame_list[start:start+self.group_scale])
+                    # videos = self.frame_list[start:start+self.group_len_dict[i]]
+                    videos = self.frame_list[start:start+self.group_scale]
+                    # no_videos = [self.no_im] * (self.group_scale - self.group_len_dict[i])
+                    im_show = self.splicer(videos)
                 # group = [None] * self.group_scale
             else:  # 单路显示
                 im_show = self.frame_list[self.display_manager.intragroup_index]

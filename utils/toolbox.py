@@ -171,6 +171,7 @@ class SquareSplice:
             im = self.add_divider(im)
         return im
 
+    # 添加分割线
     def add_divider(self, im):
         for line_num in range(self.scale+1):
             hline_y = line_num * self.grid_h  # 水平线的y坐标

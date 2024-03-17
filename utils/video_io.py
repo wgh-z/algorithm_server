@@ -30,6 +30,7 @@ class VideoDisplayManage:
         x, y = d_click_rate
         if self.intragroup_index == -1:
             self.intragroup_index = int(x//(1/self.scale) + (y//(1/self.scale))*self.scale)
+            self.intragroup_index += self.group_scale*self.intergroup_index
         return f'当前显示第{self.intergroup_index}组，第{self.intragroup_index}路视频'
 
     def exit_intragroup(self):

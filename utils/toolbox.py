@@ -5,47 +5,10 @@ import yaml
 import copy
 import numpy as np
 from utils.regional_judgment import point_in_rect
+from utils.draw import create_void_img
 import pprint
 import json
 from operator import itemgetter
-from PIL import Image, ImageDraw, ImageFont
-
-
-def center_draw_chinese(xy, im, text, txt_color=(255, 255, 255), font_size=None, font='./font/simkai.ttf', anchor="nw"):
-    """
-    anchor: str, 文本锚点，可选值有：'nw', 'ne', 'center', 'sw', 'se'
-    """
-    input_is_pil = isinstance(im, Image.Image)
-    im = im if input_is_pil else Image.fromarray(im)
-    # 创建一个可以在给定图像上绘图的对象
-    draw = ImageDraw.Draw(im)
-    # 字体的格式，"simsun.ttc"  simkai.ttf
-    size = font_size or max(round(sum(im.size) / 2 * 0.035), 12)
-    fontStyle = ImageFont.truetype(str(font), size)
-    # 绘制文本
-    w, h = fontStyle.getsize(text)  # text width, height
-    if anchor == "nw":
-        location = (xy[0], xy[1])
-    elif anchor == "ne":
-        location = (xy[0] - w, xy[1])
-    elif anchor == "center":
-        location = (xy[0] - w / 2, xy[1] - h / 2)
-    elif anchor == "sw":
-        location = (xy[0], xy[1] - h)
-    elif anchor == "se":
-        location = (xy[0] - w, xy[1] - h)
-    draw.text(location, text, txt_color, font=fontStyle)
-    return np.asarray(im)
-
-
-def create_void_img(shape=(1920, 1080), text='no video'):
-    """
-    创建一个黑色图像，用于显示无视频时的画面
-    """
-    void_img = np.zeros((shape[1], shape[0], 3), dtype=np.uint8)
-    # void_img = cv2.putText(void_img, text, (500, 360), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 2)
-    void_img = center_draw_chinese((int(shape[0]/2), int(shape[1]/2)), void_img, text, anchor="center")
-    return void_img
 
 
 def fps(func):

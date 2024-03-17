@@ -2,7 +2,7 @@
 import cv2
 import time
 import numpy as np
-from utils.toolbox import create_void_img
+from utils.draw import create_void_img
 
 
 class VideoDisplayManage:

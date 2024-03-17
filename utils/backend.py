@@ -11,7 +11,8 @@ from queue import Queue
 # from ultralytics.data.loaders import LoadStreams
 # from ultralytics.data.augment import LetterBox
 
-from utils.toolbox import SquareSplice, create_void_img
+from utils.toolbox import SquareSplice
+from utils.draw import create_void_img
 from utils.video_io import VideoDisplayManage, ReadVideo
 from models.track import Track
 
@@ -50,6 +51,7 @@ class SmartBackend:
 
         # 初始化共享变量
         self.im_show = create_void_img((self.show_w, self.show_h), '正在加载')
+        no_im = create_void_img((self.show_w, self.show_h), '未添加视频')
         # self.im_show = np.zeros((self.show_h, self.show_w, 3), dtype=np.uint8)
         self.video_reader_list = [None] * self.n
         self.tracker_thread_list = [None] * self.n
@@ -138,6 +140,7 @@ class SmartBackend:
                 # group = [None] * self.group_scale
             else:  # 单路显示
                 im_show = self.frame_list[self.display_manager.intragroup_index]
+                im_show = cv2.resize(im_show, (self.show_w, self.show_h))
 
             self.im_show = im_show.copy()
             self.im_show = cv2.putText(self.im_show, f"FPS={avg_fps:.2f}", (0, 40),

@@ -2,9 +2,13 @@
 Flask==2.2.3
 opencv-python==4.9.0.80
 Flask-Cors==3.0.10
+Werkzeug==2.2.3
 PyYAML==6.0.1
 numpy>=1.23.5
 ultralytics==8.1.27
+Pillow==9.4.0
+Cython==3.0.0  # 3.0.9
+lap==0.4.0  # 0.5.5
 # torch==2.1.2
 # torchaudio==2.1.2
 # torchvision==0.16.2

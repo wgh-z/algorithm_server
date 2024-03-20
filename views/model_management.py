@@ -4,8 +4,10 @@
 # 模型管理相关路由
 from flask import Blueprint, request, jsonify
 from utils.toolbox import create_model_config_flie
+from utils.backend import SmartBackend
 
-def model_blueprint(predicter):
+
+def model_blueprint(predicter: SmartBackend):
     model_management = Blueprint('model_management', __name__)
 
     @model_management.route('/config', methods=['POST'])

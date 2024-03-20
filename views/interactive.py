@@ -3,9 +3,10 @@
 
 # 鼠标、键盘等交互式操作相关路由
 from flask import Blueprint, request, jsonify
+from utils.backend import SmartBackend
 
 
-def interactive_blueprint(predictor):
+def interactive_blueprint(predictor: SmartBackend):
     interactive_operation = Blueprint('mouse_operation', __name__)
 
     # 双击左键进入组内显示

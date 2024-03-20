@@ -3,17 +3,15 @@ import cv2
 import time
 import numpy as np
 from utils.draw import create_void_img
-from utils.backend import SmartBackend
 
 
-def generate(predictor: SmartBackend):
+def generate(predictor):
     predictor.start()
     show_fps = 25
     sleep_time = 1 / show_fps
     while predictor.running:
         t1 = time.time()
         frame = predictor.get_results()
-        frame = cv2.resize(frame, (1280, 720))
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
         yield b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + \

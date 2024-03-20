@@ -3,7 +3,27 @@ import cv2
 import time
 import numpy as np
 from utils.draw import create_void_img
+from utils.backend import SmartBackend
 
+
+def generate(predictor: SmartBackend):
+    predictor.start()
+    show_fps = 25
+    sleep_time = 1 / show_fps
+    while predictor.running:
+        t1 = time.time()
+        frame = predictor.get_results()
+        frame = cv2.resize(frame, (1280, 720))
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+        yield b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + \
+              frame + b'\r\n'  # concat frame one by one and show result
+        spend_time = time.time() - t1
+        time.sleep(sleep_time-spend_time if spend_time < sleep_time else 0)
+
+    print('帧获取结束')
+    # return b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + \
+    #           b'' + b'\r\n'
 
 class VideoDisplayManage:
     """

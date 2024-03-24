@@ -293,39 +293,3 @@ class ClickFilterDet:
                 r_point = None
         new_det = np.take(det, in_show, axis=1)
         return l_point, r_point
-
-
-class DelayDraw:
-    """
-    这是一个点的延迟绘制类，用于将点绘制在图像上并延迟消失
-    """
-    def __init__(self, delay_count=5):
-        # self.delay_count = delay_count
-        self.l_count = delay_count
-        self.r_count = delay_count
-
-    def __call__(self, frame, l_rate=None, r_rate=None):
-        if l_rate is not None:
-            print(f'左键显示')
-            if self.l_count > 0:
-                print(f'左键显示2')
-                self.l_count -= 1
-                frame = self.draw_point(frame, l_rate, color=(0, 255, 0))
-            else:
-                l_rate = None
-                self.l_count = 5
-        if r_rate is not None:
-            if self.r_count > 0:
-                self.r_count -= 1
-                frame = self.draw_point(frame, r_rate, color=(0, 0, 255))
-            else:
-                r_rate = None
-                self.r_count = 5
-        return frame, l_rate, r_rate
-
-    def draw_point(self, im, point_rate, color=(0, 255, 0)):
-        im = cv2.circle(im,
-                        (int(im.shape[1] * point_rate[0]),
-                        int(im.shape[0] * point_rate[1])),
-                        10, color, -1)
-        return im

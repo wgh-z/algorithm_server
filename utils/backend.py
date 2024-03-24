@@ -11,8 +11,8 @@ from queue import Queue
 # from ultralytics.data.loaders import LoadStreams
 # from ultralytics.data.augment import LetterBox
 
-from utils.toolbox import SquareSplice, DelayDraw
-from utils.draw import create_void_img
+from utils.toolbox import SquareSplice
+from utils.draw import create_void_img, DelayDraw
 from utils.video_io import VideoDisplayManage, ReadVideo
 from models.track import Track
 

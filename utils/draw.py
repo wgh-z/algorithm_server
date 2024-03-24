@@ -1,9 +1,10 @@
 # 绘图相关
+import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from ultralytics.utils.plotting import Annotator, colors
 
-        
+
 def draw_box(
         im0,
         det,
@@ -70,3 +71,39 @@ def create_void_img(shape=(1920, 1080), text='no video'):
     # void_img = cv2.putText(void_img, text, (500, 360), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 2)
     void_img = center_draw_chinese((int(shape[0]/2), int(shape[1]/2)), void_img, text, anchor="center")
     return void_img
+
+
+class DelayDraw:
+    """
+    这是一个点的延迟绘制类，用于将点绘制在图像上并延迟消失
+    """
+    def __init__(self, delay_count=5):
+        # self.delay_count = delay_count
+        self.l_count = delay_count
+        self.r_count = delay_count
+
+    def __call__(self, frame, l_rate=None, r_rate=None):
+        if l_rate is not None:
+            print(f'左键显示')
+            if self.l_count > 0:
+                print(f'左键显示2')
+                self.l_count -= 1
+                frame = self.draw_point(frame, l_rate, color=(0, 255, 0))
+            else:
+                l_rate = None
+                self.l_count = 5
+        if r_rate is not None:
+            if self.r_count > 0:
+                self.r_count -= 1
+                frame = self.draw_point(frame, r_rate, color=(0, 0, 255))
+            else:
+                r_rate = None
+                self.r_count = 5
+        return frame, l_rate, r_rate
+
+    def draw_point(self, im, point_rate, color=(0, 255, 0)):
+        im = cv2.circle(im,
+                        (int(im.shape[1] * point_rate[0]),
+                        int(im.shape[0] * point_rate[1])),
+                        10, color, -1)
+        return im

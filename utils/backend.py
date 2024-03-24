@@ -11,7 +11,7 @@ from queue import Queue
 # from ultralytics.data.loaders import LoadStreams
 # from ultralytics.data.augment import LetterBox
 
-from utils.toolbox import SquareSplice
+from utils.toolbox import SquareSplice, DelayDraw
 from utils.draw import create_void_img
 from utils.video_io import VideoDisplayManage, ReadVideo
 from models.track import Track
@@ -204,9 +204,8 @@ class SmartBackend:
             )
         _, _ = tracker(self.im_show, {})  # warmup
 
+        point_drawer = DelayDraw()
         show_id = dict()
-        l_count = 5  # 点击位置保留帧数
-        r_count = 5
 
         wait_time = 1 / 25
         while self.running:
@@ -220,33 +219,8 @@ class SmartBackend:
             else:
                 annotated_frame = frame
 
-            # new_frame = annotated_frame.copy()  # 需要和路数绑定
-            new_frame = annotated_frame
-
             if index == self.display_manager.intragroup_index:
-                # print(f'{index}===显示==={self.display_manager.intragroup_index}')
-                # point delay 10 frames
-                if self.l_rate is not None:
-                    # print(f'{index}左键显示')
-                    if l_count > 0:
-                        # print(f'{index}左键显示2')
-                        l_count -= 1
-                        new_frame = cv2.circle(new_frame, (int(frame.shape[1] * self.l_rate[0]),
-                                                    int(frame.shape[0] * self.l_rate[1])),
-                                                    10, (0, 255, 0), -1)
-                    else:
-                        self.l_rate = None
-                        l_count = 5
-                if self.r_rate is not None:
-                    # print(f'{index}右键显示')
-                    if r_count > 0:
-                        r_count -= 1
-                        new_frame = cv2.circle(new_frame, (int(frame.shape[1] * self.r_rate[0]),
-                                                    int(frame.shape[0] * self.r_rate[1])),
-                                                    10, (0, 0, 255), -1)
-                    else:
-                        self.r_rate = None
-                        r_count = 5
+                annotated_frame, self.l_rate, self.r_rate = point_drawer(annotated_frame, self.l_rate, self.r_rate)
 
             # if t3 - t1 < wait_time:  # 帧数稳定
             #     time.sleep(wait_time - (t2 - t1))
@@ -256,5 +230,5 @@ class SmartBackend:
             # print(f'第{index}路检测:{tracker.count}')  # 0.014,0.291
             if q.full():
                 q.get()
-            q.put(new_frame)
+            q.put(annotated_frame)
         print(f"第{index}路已停止")

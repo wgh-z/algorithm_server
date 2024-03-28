@@ -84,9 +84,7 @@ class DelayDraw:
 
     def __call__(self, frame, l_rate=None, r_rate=None):
         if l_rate is not None:
-            print(f'左键显示')
             if self.l_count > 0:
-                print(f'左键显示2')
                 self.l_count -= 1
                 frame = self.draw_point(frame, l_rate, color=(0, 255, 0))
             else:

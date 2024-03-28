@@ -1,10 +1,9 @@
 # 视频处理相关
 import cv2
-import mss
 import time
 import numpy as np
 from utils.draw import create_void_img
-# from ultralytics.data.loaders import LoadScreenshots
+from ultralytics.data.loaders import LoadScreenshots
 
 
 def generate(predictor):
@@ -84,23 +83,7 @@ class ReadVideo:
             else:
                 print(f'视频{self.source}打开失败')
         else:
-            source, *params = source.split()
-            self.screen, left, top, width, height = 0, None, None, None, None  # default to full screen 0
-            if len(params) == 1:
-                self.screen = int(params[0])
-            elif len(params) == 4:
-                left, top, width, height = (int(x) for x in params)
-            elif len(params) == 5:
-                self.screen, left, top, width, height = (int(x) for x in params)
-            self.sct = mss.mss()
-
-            # Parse monitor shape
-            monitor = self.sct.monitors[self.screen]
-            self.top = monitor["top"] if top is None else (monitor["top"] + top)
-            self.left = monitor["left"] if left is None else (monitor["left"] + left)
-            self.width = width or monitor["width"]
-            self.height = height or monitor["height"]
-            self.monitor = {"left": self.left, "top": self.top, "width": self.width, "height": self.height}
+            self.datas = LoadScreenshots(source) 
 
         w, h = 1920, 1080
         self.void_img = create_void_img((w, h), '无信号')
@@ -129,8 +112,7 @@ class ReadVideo:
                 return self.void_img, success
             return frame, success
         else:
-            frame = np.asarray(self.sct.grab(self.monitor))[:, :, :3]  # BGRA to BGR
-            s = f"screen {self.screen} (LTWH): {self.left},{self.top},{self.width},{self.height}: "
+            frame = next(self.datas)[1][0]
             return frame, True
 
     def release(self):

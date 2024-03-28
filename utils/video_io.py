@@ -1,8 +1,10 @@
 # 视频处理相关
 import cv2
+import mss
 import time
 import numpy as np
 from utils.draw import create_void_img
+# from ultralytics.data.loaders import LoadScreenshots
 
 
 def generate(predictor):
@@ -71,13 +73,36 @@ class ReadVideo:
     这是一个视频读取类，用于读取视频
     """
     def __init__(self, source, timeout: int = 2) -> None:
+        source = str(source)
         self.source = source
-        self.cap = cv2.VideoCapture(self.source)
-        if self.cap.isOpened():
-            w, h = int(self.cap.get(3)), int(self.cap.get(4))
+
+        self.is_url = source.lower().startswith(("rtsp://", "rtmp://", "http://", "https://"))
+        if self.is_url:
+            self.cap = cv2.VideoCapture(self.source)
+            if self.cap.isOpened():
+                w, h = int(self.cap.get(3)), int(self.cap.get(4))
+            else:
+                print(f'视频{self.source}打开失败')
         else:
-            print(f'视频{self.source}打开失败')
-            w, h = 1920, 1080
+            source, *params = source.split()
+            self.screen, left, top, width, height = 0, None, None, None, None  # default to full screen 0
+            if len(params) == 1:
+                self.screen = int(params[0])
+            elif len(params) == 4:
+                left, top, width, height = (int(x) for x in params)
+            elif len(params) == 5:
+                self.screen, left, top, width, height = (int(x) for x in params)
+            self.sct = mss.mss()
+
+            # Parse monitor shape
+            monitor = self.sct.monitors[self.screen]
+            self.top = monitor["top"] if top is None else (monitor["top"] + top)
+            self.left = monitor["left"] if left is None else (monitor["left"] + left)
+            self.width = width or monitor["width"]
+            self.height = height or monitor["height"]
+            self.monitor = {"left": self.left, "top": self.top, "width": self.width, "height": self.height}
+
+        w, h = 1920, 1080
         self.void_img = create_void_img((w, h), '无信号')
         self.timeout = timeout
     
@@ -96,12 +121,17 @@ class ReadVideo:
     #     return frame
     
     def __call__(self):
-        success, frame = self.cap.read()
-        if not success:
-            self.cap.release()
-            self.cap = cv2.VideoCapture(self.source)
-            return self.void_img, success
-        return frame, success
+        if self.is_url:
+            success, frame = self.cap.read()
+            if not success:
+                self.cap.release()
+                self.cap = cv2.VideoCapture(self.source)
+                return self.void_img, success
+            return frame, success
+        else:
+            frame = np.asarray(self.sct.grab(self.monitor))[:, :, :3]  # BGRA to BGR
+            s = f"screen {self.screen} (LTWH): {self.left},{self.top},{self.width},{self.height}: "
+            return frame, True
 
     def release(self):
         self.cap.release()

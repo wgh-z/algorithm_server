@@ -83,13 +83,13 @@ class SmartBackend:
 
             # 追踪检测线程
             for i, source in enumerate(self.source_list):
-                self.video_reader_list[i] = ReadVideo(source)
+                # self.video_reader_list[i] = ReadVideo(source)
 
                 tracker_thread = threading.Thread(
                     target=self.run_in_thread,
                     args=(self.source_dict[source],
                           self.q_in_list[i],
-                          self.video_reader_list[i], i),
+                          source, i),
                     daemon=False
                 )
                 self.tracker_thread_list[i] = tracker_thread
@@ -192,7 +192,7 @@ class SmartBackend:
         pass
 
     # 需要抽象为类，每路加载不同的配置文件
-    def run_in_thread(self, cfg_dict: dict, q: Queue, video_reader, index):
+    def run_in_thread(self, cfg_dict: dict, q: Queue, source, index):
         """
         """
         tracker = Track(
@@ -204,6 +204,7 @@ class SmartBackend:
             )
         _, _ = tracker(self.im_show, {})  # warmup
 
+        video_reader = ReadVideo(source)
         point_drawer = DelayDraw()
         show_id = dict()
 
@@ -232,3 +233,4 @@ class SmartBackend:
                 q.get()
             q.put(annotated_frame)
         print(f"第{index}路已停止")
+        video_reader.release()

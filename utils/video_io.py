@@ -34,7 +34,10 @@ class VideoDisplayManage:
         self.scale = scale
 
         self.intergroup_index = 0  # 组间索引
-        self.intragroup_index = -1  # 组内索引。-1表示宫格显示，0-3表示单路显示
+        if self.group_scale == 1:
+            self.intragroup_index = 0  # 组内索引。-1表示宫格显示，0-3表示单路显示
+        else:
+            self.intragroup_index = -1
     
     def switch_group(self, direction: int = 1):
         assert direction in [-1, 1], 'direction must be -1 or 1'

@@ -11,4 +11,7 @@
 
 PORT=${1:-8554}
 
-docker run --rm -it --gpus all -p $PORT:8554 -p 4006:4006 --name a_server algorithm_server:2.2.0-cuda12.1-cudnn8-runtime
+sudo docker run --rm -it --gpus all \
+    -p $PORT:8554 -p 4006:4006 \
+    -v /home/wgh-ubuntu/algorithm_server:/usr/src/ultralytics \
+    --name a_server algorithm_server:2.2.0-cuda12.1-cudnn8-runtime
